@@ -3,7 +3,7 @@
  * Fetches content from consciousnessnetworks.com WordPress backend
  */
 
-const WP_API_URL = 'https://wp.consciousnessnetworks.com/wp-json/wp/v2';
+const WP_API_URL = 'https://consciousnessnetworks.com/wp-json/wp/v2';
 
 export interface WordPressPost {
   id: number;
@@ -146,7 +146,7 @@ export async function getPostBySlug(slug: string): Promise<WordPressPost | null>
  */
 export async function getSiteInfo() {
   try {
-    const res = await fetch('https://wp.consciousnessnetworks.com/wp-json', {
+    const res = await fetch('https://consciousnessnetworks.com/wp-json', {
       next: { revalidate: 3600 } // Revalidate every hour
     });
 
