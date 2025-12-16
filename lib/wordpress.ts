@@ -1,9 +1,9 @@
 /**
  * WordPress REST API Client
- * Fetches content from consciousnessnetworks.com WordPress backend
+ * Fetches content from wp.consciousnessnetworks.com WordPress backend
  */
 
-const WP_API_URL = 'https://consciousnessnetworks.com/wp-json/wp/v2';
+const WP_API_URL = 'http://wp.consciousnessnetworks.com/wp-json/wp/v2';
 
 export interface WordPressPost {
   id: number;
