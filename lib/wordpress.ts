@@ -163,6 +163,19 @@ export async function getSiteInfo() {
 }
 
 /**
+ * Convert absolute WordPress URLs to relative paths
+ * This allows Vercel to proxy images via HTTPS rewrite
+ */
+export function toRelativeUrl(url: string): string {
+  if (!url) return url;
+
+  // Convert http://wp.consciousnessnetworks.com/wp-content to /wp-content
+  // Convert http://52.0.124.233/wp-content to /wp-content
+  // Convert https://consciousnessnetworks.com/wp-content to /wp-content
+  return url.replace(/^https?:\/\/[^\/]+(\/.*)$/, '$1');
+}
+
+/**
  * Strip HTML tags from content (for excerpts)
  */
 export function stripHtml(html: string): string {
@@ -185,16 +198,17 @@ export function getFeaturedImage(page: WordPressPage | WordPressPost): string | 
   // Try featured media first
   if (page._embedded?.['wp:featuredmedia']?.[0]) {
     const media = page._embedded['wp:featuredmedia'][0];
-    return (media as any).media_details?.sizes?.medium?.source_url
+    const url = (media as any).media_details?.sizes?.medium?.source_url
       || (media as any).media_details?.sizes?.large?.source_url
       || media.source_url;
+    return toRelativeUrl(url);
   }
 
   // Fallback: Extract first image from content HTML
   if (page.content?.rendered) {
     const imgMatch = page.content.rendered.match(/<img[^>]+src="([^">]+)"/);
     if (imgMatch && imgMatch[1]) {
-      return imgMatch[1];
+      return toRelativeUrl(imgMatch[1]);
     }
   }
 
