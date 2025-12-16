@@ -14,7 +14,7 @@ export async function generateStaticParams() {
   const pages = await getPages();
 
   return pages
-    .filter(page => !['about', 'contact', 'papers'].includes(page.slug))
+    .filter(page => !['about', 'contact', 'papers', 'home'].includes(page.slug))
     .map((page) => ({
       slug: page.slug,
     }));
@@ -74,6 +74,11 @@ export default async function ArticlePage({
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
             }}>About</Link>
+            <Link href="/contact" style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>Contact</Link>
           </nav>
         </div>
       </header>

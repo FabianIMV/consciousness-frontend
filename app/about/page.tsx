@@ -65,6 +65,13 @@ export default function About() {
             }}>
               About
             </Link>
+            <Link href="/contact" style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>
+              Contact
+            </Link>
           </nav>
         </div>
       </header>

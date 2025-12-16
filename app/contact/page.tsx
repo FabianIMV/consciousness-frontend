@@ -61,9 +61,16 @@ export default function About() {
             <Link href="/about" style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
-              color: 'var(--primary-purple)',
+              color: 'var(--text-secondary)',
             }}>
               About
+            </Link>
+            <Link href="/contact" style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--primary-purple)',
+            }}>
+              Contact
             </Link>
           </nav>
         </div>

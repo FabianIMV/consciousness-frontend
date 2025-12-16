@@ -11,7 +11,7 @@ export const revalidate = 60;
 export default async function Home() {
   const pages = await getPages();
   const articles = pages.filter(page =>
-    !['about', 'contact', 'papers'].includes(page.slug)
+    !['about', 'contact', 'papers', 'home'].includes(page.slug)
   );
 
   // Featured article (first one)
@@ -59,6 +59,11 @@ export default async function Home() {
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
             }}>About</Link>
+            <Link href="/contact" style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>Contact</Link>
           </nav>
         </div>
       </header>
