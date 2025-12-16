@@ -1,9 +1,10 @@
 /**
  * WordPress REST API Client
- * Fetches content from wp.consciousnessnetworks.com WordPress backend
+ * Fetches content from consciousnessnetworks.com WordPress backend
+ * Uses IP direct access to bypass WordPress Multisite subdomain routing
  */
 
-const WP_API_URL = 'http://wp.consciousnessnetworks.com/wp-json/wp/v2';
+const WP_API_URL = 'http://52.0.124.233/wp-json/wp/v2';
 
 export interface WordPressPost {
   id: number;
