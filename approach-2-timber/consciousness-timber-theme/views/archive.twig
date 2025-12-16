@@ -1,0 +1,88 @@
+{#
+  Archive template
+  Lists consciousness research articles
+#}
+{% extends "base.twig" %}
+
+{% block content %}
+    <div class="research-archive">
+
+        <header class="archive-header">
+            <h1>Consciousness Research Articles</h1>
+            <p>Exploring the quantum nature of awareness and universal consciousness</p>
+        </header>
+
+        {% if posts %}
+            <div class="articles-grid">
+                {% for post in posts %}
+                    <article class="article-card">
+
+                        {# Featured Image #}
+                        {% if post.thumbnail %}
+                            <a href="{{ post.link }}" class="article-thumbnail">
+                                <img src="{{ post.thumbnail.src('medium') }}"
+                                     alt="{{ post.thumbnail.alt }}"
+                                     loading="lazy">
+                            </a>
+                        {% endif %}
+
+                        {# Article Info #}
+                        <div class="article-info">
+                            <h2 class="article-title">
+                                <a href="{{ post.link }}">{{ post.title }}</a>
+                            </h2>
+
+                            <time datetime="{{ post.date }}">
+                                {{ post.date|format_research_date }}
+                            </time>
+
+                            {# Excerpt #}
+                            <div class="article-excerpt">
+                                {{ post.preview(200) }}
+                            </div>
+
+                            {# Categories #}
+                            {% if post.terms('category') %}
+                                <div class="article-categories">
+                                    {% for category in post.terms('category') %}
+                                        <span class="category-tag">{{ category.name }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            <a href="{{ post.link }}" class="read-more">
+                                Read Full Article →
+                            </a>
+                        </div>
+
+                    </article>
+                {% endfor %}
+            </div>
+
+            {# Pagination #}
+            {% if posts.pagination %}
+                <nav class="pagination">
+                    {% if posts.pagination.prev %}
+                        <a href="{{ posts.pagination.prev.link }}" class="prev">
+                            ← Previous
+                        </a>
+                    {% endif %}
+
+                    <span class="page-numbers">
+                        Page {{ posts.pagination.current }} of {{ posts.pagination.total }}
+                    </span>
+
+                    {% if posts.pagination.next %}
+                        <a href="{{ posts.pagination.next.link }}" class="next">
+                            Next →
+                        </a>
+                    {% endif %}
+                </nav>
+            {% endif %}
+
+        {% else %}
+            <p class="no-posts">No research articles found.</p>
+        {% endif %}
+
+    </div>
+{% endblock %}

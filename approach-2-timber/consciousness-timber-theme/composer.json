@@ -1,0 +1,14 @@
+{
+  "name": "consciousness-networks/timber-theme",
+  "description": "Code-first WordPress theme for consciousness research using Timber/Twig",
+  "type": "wordpress-theme",
+  "require": {
+    "timber/timber": "^1.23",
+    "php": ">=7.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "ConsciousnessTheme\\": "lib/"
+    }
+  }
+}
