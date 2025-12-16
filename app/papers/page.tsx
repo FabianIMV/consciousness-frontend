@@ -5,7 +5,7 @@
 'use client';
 
 import Link from 'next/link';
-import { getPageBySlug } from '@/lib/wordpress';
+import { getPageBySlug, processContent } from '@/lib/wordpress';
 import { useEffect, useState } from 'react';
 
 export default function About() {
@@ -17,7 +17,7 @@ export default function About() {
     getPageBySlug('papers').then(page => {
       if (page) {
         setTitle(page.title.rendered);
-        setContent(page.content.rendered);
+        setContent(processContent(page.content.rendered));
       }
       setLoading(false);
     });
