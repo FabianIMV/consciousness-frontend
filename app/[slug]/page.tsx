@@ -4,7 +4,7 @@
  */
 
 import Link from 'next/link';
-import { getPages, getPageBySlug, getFeaturedImage } from '@/lib/wordpress';
+import { getPages, getPageBySlug, getFeaturedImage, processContent } from '@/lib/wordpress';
 import { notFound } from 'next/navigation';
 
 export const revalidate = 60;
@@ -155,7 +155,7 @@ export default async function ArticlePage({
             {/* Article Body */}
             <div
               className="article-content"
-              dangerouslySetInnerHTML={{ __html: page.content.rendered }}
+              dangerouslySetInnerHTML={{ __html: processContent(page.content.rendered) }}
               style={{
                 fontSize: 'var(--text-lg)',
                 lineHeight: 'var(--leading-relaxed)',

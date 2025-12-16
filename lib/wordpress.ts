@@ -176,6 +176,30 @@ export function toRelativeUrl(url: string): string {
 }
 
 /**
+ * Process WordPress HTML content to convert image URLs to relative paths
+ * This ensures images load via HTTPS through Vercel's rewrite proxy
+ */
+export function processContent(html: string): string {
+  if (!html) return html;
+
+  // Replace all image src URLs with relative paths
+  return html.replace(
+    /(<img[^>]+src=")https?:\/\/[^\/]+(\/[^"]+)(")/g,
+    '$1$2$3'
+  ).replace(
+    /(<img[^>]+srcset=")([^"]+)(")/g,
+    (match, prefix, srcset, suffix) => {
+      // Also process srcset attributes
+      const processedSrcset = srcset.replace(
+        /https?:\/\/[^\/]+(\/[^\s,]+)/g,
+        '$1'
+      );
+      return prefix + processedSrcset + suffix;
+    }
+  );
+}
+
+/**
  * Strip HTML tags from content (for excerpts)
  */
 export function stripHtml(html: string): string {
