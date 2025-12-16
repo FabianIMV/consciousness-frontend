@@ -65,13 +65,13 @@ export default async function Home() {
 
       {/* Main Content - 3 Column Layout */}
       <div style={{ paddingTop: 'var(--header-height)' }}>
-        <div className="container" style={{
+        <div className="container layout-3col" style={{
           display: 'grid',
           gridTemplateColumns: '200px 1fr 280px',
           gap: 'var(--spacing-8)',
           padding: 'var(--spacing-8) var(--spacing-6)',
           maxWidth: '1400px',
-        }} className="layout-3col">
+        }}>
 
           {/* LEFT SIDEBAR - Navigation */}
           <aside className="sidebar-left" style={{
