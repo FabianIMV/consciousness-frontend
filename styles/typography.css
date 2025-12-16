@@ -1,0 +1,177 @@
+/**
+ * Typography Styles - Consciousness Networks
+ * Medium.com inspired with spiritual enhancement
+ */
+
+/* Base Typography */
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-4);
+}
+
+h1 {
+  font-size: var(--text-5xl);
+  font-weight: var(--font-black);
+  letter-spacing: var(--tracking-tight);
+}
+
+h2 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+}
+
+h3 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+}
+
+h4 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+}
+
+h5 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+}
+
+h6 {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* Paragraphs */
+p {
+  margin-bottom: var(--spacing-6);
+  line-height: var(--leading-relaxed);
+}
+
+/* Lead paragraph (intro text) */
+.lead {
+  font-size: var(--text-xl);
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+}
+
+/* Links */
+a {
+  color: var(--primary-purple);
+  text-decoration: none;
+  transition: color var(--transition-base);
+}
+
+a:hover {
+  color: var(--deep-purple);
+}
+
+/* Lists */
+ul, ol {
+  margin-bottom: var(--spacing-6);
+  padding-left: var(--spacing-6);
+}
+
+li {
+  margin-bottom: var(--spacing-2);
+  line-height: var(--leading-relaxed);
+}
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid var(--primary-purple);
+  padding-left: var(--spacing-6);
+  margin: var(--spacing-8) 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+/* Code */
+code {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--primary-purple);
+}
+
+pre {
+  background: var(--bg-tertiary);
+  padding: var(--spacing-4);
+  border-radius: var(--border-radius);
+  overflow-x: auto;
+  margin-bottom: var(--spacing-6);
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Article Content - Medium Style */
+.article-content {
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  line-height: var(--leading-relaxed);
+  color: var(--text-primary);
+}
+
+.article-content p {
+  margin-bottom: var(--spacing-6);
+}
+
+.article-content h2,
+.article-content h3 {
+  margin-top: var(--spacing-10);
+  margin-bottom: var(--spacing-4);
+  font-family: var(--font-display);
+}
+
+.article-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--border-radius-lg);
+  margin: var(--spacing-8) 0;
+}
+
+.article-content a {
+  color: var(--primary-purple);
+  text-decoration: underline;
+  text-decoration-color: rgba(101, 40, 247, 0.3);
+  text-underline-offset: 2px;
+  transition: all var(--transition-base);
+}
+
+.article-content a:hover {
+  text-decoration-color: var(--primary-purple);
+}
+
+/* Metadata text (dates, author info) */
+.metadata {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  font-weight: var(--font-medium);
+}
+
+/* Small caps for special text */
+.small-caps {
+  font-variant: small-caps;
+  letter-spacing: var(--tracking-wide);
+}

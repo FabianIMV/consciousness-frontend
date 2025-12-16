@@ -1,0 +1,126 @@
+/**
+ * Design Tokens - Consciousness Networks
+ * Based on analysis of original WordPress site
+ */
+
+:root {
+  /* Colors - Purple/Violet Spiritual Theme */
+  --primary-purple: #6528F7;
+  --primary-violet: #A78BFA;
+  --deep-purple: #5521B5;
+  --accent-pink: #EC4899;
+  --cyan-spiritual: #06B6D4;
+  --gold-cosmic: #F59E0B;
+
+  /* Neutrals */
+  --text-primary: #1F2937;
+  --text-secondary: #4B5563;
+  --text-tertiary: #9CA3AF;
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F9FAFB;
+  --bg-tertiary: #F3F4F6;
+
+  /* Borders */
+  --border-light: rgba(229, 231, 235, 1);
+  --border-medium: rgba(209, 213, 219, 1);
+  --border-purple: rgba(101, 40, 247, 0.15);
+
+  /* Gradients */
+  --gradient-cosmic: linear-gradient(135deg, #6528F7, #A78BFA);
+  --gradient-aurora: linear-gradient(135deg, #EC4899, #A78BFA, #06B6D4);
+  --bg-gradient-subtle: linear-gradient(180deg, rgba(167, 139, 250, 0.03), rgba(255, 255, 255, 0));
+
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.18);
+
+  /* Spacing (Tailwind-style) */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+  --spacing-20: 5rem;
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Georgia', 'Times New Roman', serif;
+  --font-display: 'SF Pro Display', -apple-system, system-ui, sans-serif;
+
+  /* Font Sizes */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-black: 900;
+
+  /* Line Heights */
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+
+  /* Letter Spacing */
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+
+  /* Borders & Radius */
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --card-radius: 16px;
+  --button-radius: 8px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+  --card-shadow: 0 4px 12px rgba(101, 40, 247, 0.08);
+  --card-shadow-hover: 0 8px 24px rgba(101, 40, 247, 0.15);
+
+  /* Transitions */
+  --transition-base: 0.2s ease-in-out;
+  --transition-slow: 0.3s ease-in-out;
+
+  /* Layout */
+  --container-max: 1200px;
+  --content-max: 800px;
+  --header-height: 80px;
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #F9FAFB;
+    --text-secondary: #D1D5DB;
+    --text-tertiary: #9CA3AF;
+    --bg-primary: #111827;
+    --bg-secondary: #1F2937;
+    --bg-tertiary: #374151;
+    --border-light: rgba(75, 85, 99, 0.3);
+    --border-medium: rgba(107, 114, 128, 0.5);
+    --glass-bg: rgba(17, 24, 39, 0.85);
+  }
+}
