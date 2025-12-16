@@ -184,8 +184,8 @@ export function getFeaturedImage(page: WordPressPage | WordPressPost): string | 
   // Try featured media first
   if (page._embedded?.['wp:featuredmedia']?.[0]) {
     const media = page._embedded['wp:featuredmedia'][0];
-    return media.media_details?.sizes?.medium?.source_url
-      || media.media_details?.sizes?.large?.source_url
+    return (media as any).media_details?.sizes?.medium?.source_url
+      || (media as any).media_details?.sizes?.large?.source_url
       || media.source_url;
   }
 
