@@ -276,20 +276,33 @@ body {
 }
 
 /* ===== RESPONSIVE ===== */
+
+/* Tablet and below */
 @media (max-width: 1200px) {
   /* Hide right sidebar on medium screens */
   .sidebar-right {
     display: none !important;
   }
+
+  /* Adjust 3-column layout to 2 columns */
+  .layout-3col {
+    grid-template-columns: 200px 1fr !important;
+  }
 }
 
+/* Mobile and below */
 @media (max-width: 768px) {
+  /* Typography adjustments */
   h1 {
-    font-size: var(--text-4xl);
+    font-size: var(--text-3xl) !important;
   }
 
   h2 {
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl) !important;
+  }
+
+  h3 {
+    font-size: var(--text-lg) !important;
   }
 
   .btn {
@@ -300,5 +313,92 @@ body {
   /* Single column on mobile */
   .sidebar-left {
     display: none !important;
+  }
+
+  .layout-3col {
+    grid-template-columns: 1fr !important;
+    padding: var(--spacing-4) var(--spacing-3) !important;
+    gap: var(--spacing-4) !important;
+  }
+
+  /* Hide navigation text, show hamburger menu icon */
+  .nav-desktop {
+    display: none !important;
+  }
+
+  .nav-mobile {
+    display: flex !important;
+  }
+
+  /* Make header title smaller */
+  .header-title {
+    font-size: var(--text-base) !important;
+  }
+
+  /* Adjust lead text */
+  .lead {
+    font-size: var(--text-base) !important;
+  }
+
+  /* Make badges smaller */
+  .badge {
+    font-size: 0.625rem !important;
+    padding: 4px 10px !important;
+  }
+
+  /* Article cards - stack images on top */
+  .article-card-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--spacing-4) !important;
+  }
+
+  .article-card-image {
+    width: 100% !important;
+    height: 200px !important;
+  }
+
+  /* Featured image adjustments */
+  .featured-image {
+    height: 250px !important;
+  }
+
+  /* Article page featured image */
+  .article-featured-image {
+    height: 300px !important;
+  }
+}
+
+/* Extra small mobile */
+@media (max-width: 480px) {
+  :root {
+    --header-height: 64px;
+  }
+
+  h1 {
+    font-size: var(--text-2xl) !important;
+  }
+
+  h2 {
+    font-size: var(--text-lg) !important;
+  }
+
+  .container {
+    padding: 0 var(--spacing-3);
+  }
+
+  .header-title {
+    font-size: var(--text-sm) !important;
+  }
+
+  .gradient-text {
+    font-size: var(--text-2xl) !important;
+  }
+
+  .featured-image {
+    height: 180px !important;
+  }
+
+  .article-featured-image {
+    height: 200px !important;
   }
 }

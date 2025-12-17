@@ -49,7 +49,7 @@ export default async function ArticlePage({
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <Link href="/" className="glow-on-hover" style={{
+          <Link href="/" className="glow-on-hover header-title" style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'var(--text-xl)',
             fontWeight: 'var(--font-bold)',
@@ -58,7 +58,7 @@ export default async function ArticlePage({
             Consciousness Networks
           </Link>
 
-          <nav style={{ display: 'flex', gap: 'var(--spacing-6)' }}>
+          <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)' }}>
             <Link href="/" style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
@@ -80,6 +80,29 @@ export default async function ArticlePage({
               color: 'var(--text-secondary)',
             }}>Contact</Link>
           </nav>
+
+          <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
+            <Link href="/" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>Home</Link>
+            <Link href="/papers" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>Papers</Link>
+            <Link href="/about" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>About</Link>
+            <Link href="/contact" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>Contact</Link>
+          </nav>
         </div>
       </header>
 
@@ -90,7 +113,7 @@ export default async function ArticlePage({
       }}>
         {/* Featured Image */}
         {featuredImage && (
-          <div style={{
+          <div className="article-featured-image" style={{
             width: '100%',
             height: '500px',
             overflow: 'hidden',

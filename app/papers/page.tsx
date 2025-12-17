@@ -34,17 +34,17 @@ export default function Papers() {
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <Link href="/" style={{
+          <Link href="/" className="glow-on-hover header-title" style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'var(--text-xl)',
             fontWeight: 'var(--font-bold)',
             color: 'var(--text-primary)',
             letterSpacing: 'var(--tracking-tight)',
-          }} className="glow-on-hover">
+          }}>
             Consciousness Networks
           </Link>
 
-          <nav style={{ display: 'flex', gap: 'var(--spacing-6)', alignItems: 'center' }}>
+          <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)', alignItems: 'center' }}>
             <Link href="/" style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
@@ -73,6 +73,29 @@ export default function Papers() {
             }}>
               Contact
             </Link>
+          </nav>
+
+          <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
+            <Link href="/" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>Home</Link>
+            <Link href="/papers" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-semibold)',
+              color: 'var(--primary-purple)',
+            }}>Papers</Link>
+            <Link href="/about" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>About</Link>
+            <Link href="/contact" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>Contact</Link>
           </nav>
         </div>
       </header>

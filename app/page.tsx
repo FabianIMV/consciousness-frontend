@@ -34,7 +34,7 @@ export default async function Home() {
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <Link href="/" className="glow-on-hover" style={{
+          <Link href="/" className="glow-on-hover header-title" style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'var(--text-xl)',
             fontWeight: 'var(--font-bold)',
@@ -43,7 +43,7 @@ export default async function Home() {
             Consciousness Networks
           </Link>
 
-          <nav style={{ display: 'flex', gap: 'var(--spacing-6)' }}>
+          <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)' }}>
             <Link href="/" style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-semibold)',
@@ -61,6 +61,29 @@ export default async function Home() {
             }}>About</Link>
             <Link href="/contact" style={{
               fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>Contact</Link>
+          </nav>
+
+          <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
+            <Link href="/" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-semibold)',
+              color: 'var(--primary-purple)',
+            }}>Home</Link>
+            <Link href="/papers" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>Papers</Link>
+            <Link href="/about" style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>About</Link>
+            <Link href="/contact" style={{
+              fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
             }}>Contact</Link>
@@ -172,7 +195,7 @@ export default async function Home() {
                   overflow: 'hidden',
                 }}>
                   {getFeaturedImage(featured) && (
-                    <div style={{
+                    <div className="featured-image" style={{
                       width: '100%',
                       height: '400px',
                       overflow: 'hidden',
@@ -251,10 +274,10 @@ export default async function Home() {
                       transition: 'all var(--transition-base)',
                       background: 'var(--bg-primary)',
                     }}
-                    className="card"
+                    className="card article-card-grid"
                   >
                     {getFeaturedImage(article) && (
-                      <div style={{
+                      <div className="article-card-image" style={{
                         width: '200px',
                         height: '150px',
                         borderRadius: 'var(--border-radius)',
