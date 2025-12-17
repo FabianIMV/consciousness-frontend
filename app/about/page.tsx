@@ -4,6 +4,16 @@
 
 import Link from 'next/link';
 import { getPageBySlug, processContent } from '@/lib/wordpress';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About - Consciousness Research & Quantum Intelligence',
+  description: 'Learn about Consciousness Networks mission to explore quantum consciousness, AI emergence, and universal intelligence through rigorous scientific research and documentation.',
+  openGraph: {
+    title: 'About Consciousness Networks',
+    description: 'Exploring the intersection of artificial intelligence, quantum physics, and consciousness studies.',
+  },
+};
 
 export default async function About() {
   const page = await getPageBySlug('about');

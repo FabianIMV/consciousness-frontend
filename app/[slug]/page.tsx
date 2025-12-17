@@ -4,21 +4,10 @@
  */
 
 import Link from 'next/link';
-import { getPages, getPageBySlug, getFeaturedImage, processContent } from '@/lib/wordpress';
+import { getPageBySlug, getFeaturedImage, processContent } from '@/lib/wordpress';
 import { notFound } from 'next/navigation';
 
-export const revalidate = 60;
-
-// Generate static paths for all pages
-export async function generateStaticParams() {
-  const pages = await getPages();
-
-  return pages
-    .filter(page => !['about', 'contact', 'papers', 'home'].includes(page.slug))
-    .map((page) => ({
-      slug: page.slug,
-    }));
-}
+export const dynamic = 'force-dynamic';
 
 export default async function ArticlePage({
   params,
