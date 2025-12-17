@@ -1,5 +1,6 @@
 /**
- * About Page - Consciousness Networks
+ * Papers Page - Consciousness Networks
+ * Must-read papers and publications
  */
 
 'use client';
@@ -8,9 +9,9 @@ import Link from 'next/link';
 import { getPageBySlug, processContent } from '@/lib/wordpress';
 import { useEffect, useState } from 'react';
 
-export default function About() {
+export default function Papers() {
   const [content, setContent] = useState<string>('');
-  const [title, setTitle] = useState<string>('About');
+  const [title, setTitle] = useState<string>('Papers Must Read');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

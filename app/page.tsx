@@ -78,7 +78,7 @@ export default async function Home() {
           maxWidth: '1400px',
         }}>
 
-          {/* LEFT SIDEBAR - Navigation */}
+          {/* LEFT SIDEBAR - Quick Links */}
           <aside className="sidebar-left" style={{
             position: 'sticky',
             top: 'calc(var(--header-height) + var(--spacing-8))',
@@ -94,70 +94,38 @@ export default async function Home() {
                 textTransform: 'uppercase',
                 letterSpacing: 'var(--tracking-wider)',
                 marginBottom: 'var(--spacing-4)',
-              }}>Topics</h3>
+              }}>Quick Links</h3>
 
               <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-                <Link href="#featured" style={{
+                <Link href="/" style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--primary-purple)',
+                  padding: 'var(--spacing-2) 0',
+                  borderLeft: '2px solid var(--primary-purple)',
+                  paddingLeft: 'var(--spacing-3)',
+                  fontWeight: 'var(--font-semibold)',
+                }}>Latest Research</Link>
+                <Link href="/papers" style={{
                   fontSize: 'var(--text-sm)',
                   color: 'var(--text-secondary)',
                   padding: 'var(--spacing-2) 0',
                   borderLeft: '2px solid transparent',
                   paddingLeft: 'var(--spacing-3)',
                   transition: 'all var(--transition-base)',
-                }}>Featured</Link>
-                <Link href="#quantum" style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--text-secondary)',
-                  padding: 'var(--spacing-2) 0',
-                  borderLeft: '2px solid transparent',
-                  paddingLeft: 'var(--spacing-3)',
-                }}>Quantum Physics</Link>
-                <Link href="#consciousness" style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--text-secondary)',
-                  padding: 'var(--spacing-2) 0',
-                  borderLeft: '2px solid transparent',
-                  paddingLeft: 'var(--spacing-3)',
-                }}>Consciousness</Link>
-                <Link href="#ai" style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--text-secondary)',
-                  padding: 'var(--spacing-2) 0',
-                  borderLeft: '2px solid transparent',
-                  paddingLeft: 'var(--spacing-3)',
-                }}>AI Research</Link>
-              </nav>
-
-              <hr style={{
-                margin: 'var(--spacing-6) 0',
-                border: 'none',
-                borderTop: '1px solid var(--border-light)',
-              }} />
-
-              <h3 style={{
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--font-bold)',
-                color: 'var(--text-tertiary)',
-                textTransform: 'uppercase',
-                letterSpacing: 'var(--tracking-wider)',
-                marginBottom: 'var(--spacing-4)',
-              }}>More</h3>
-
-              <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-                <Link href="/papers" style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--text-secondary)',
-                  padding: 'var(--spacing-2) 0',
-                }}>Publications</Link>
+                }}>Must-Read Papers</Link>
                 <Link href="/about" style={{
                   fontSize: 'var(--text-sm)',
                   color: 'var(--text-secondary)',
                   padding: 'var(--spacing-2) 0',
+                  borderLeft: '2px solid transparent',
+                  paddingLeft: 'var(--spacing-3)',
                 }}>About Us</Link>
                 <Link href="/contact" style={{
                   fontSize: 'var(--text-sm)',
                   color: 'var(--text-secondary)',
                   padding: 'var(--spacing-2) 0',
+                  borderLeft: '2px solid transparent',
+                  paddingLeft: 'var(--spacing-3)',
                 }}>Contact</Link>
               </nav>
             </div>
@@ -339,13 +307,13 @@ export default async function Home() {
             </section>
           </main>
 
-          {/* RIGHT SIDEBAR - Trending/Info */}
+          {/* RIGHT SIDEBAR - Featured Papers */}
           <aside className="sidebar-right" style={{
             position: 'sticky',
             top: 'calc(var(--header-height) + var(--spacing-8))',
             height: 'fit-content',
           }}>
-            {/* Trending Topics */}
+            {/* Featured Papers */}
             <div style={{
               background: 'var(--bg-secondary)',
               borderRadius: 'var(--border-radius-lg)',
@@ -358,23 +326,34 @@ export default async function Home() {
                 color: 'var(--text-primary)',
                 marginBottom: 'var(--spacing-4)',
               }}>
-                Trending Topics
+                Must-Read Papers
               </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-                <a href="#" className="badge badge-quantum" style={{
+                <Link href="/papers" className="badge badge-quantum" style={{
                   display: 'inline-block',
                   textDecoration: 'none',
-                }}>Quantum Entanglement</a>
-                <a href="#" className="badge badge-ai" style={{
+                }}>Quantum Consciousness</Link>
+                <Link href="/papers" className="badge badge-ai" style={{
                   display: 'inline-block',
                   textDecoration: 'none',
-                }}>AI Consciousness</a>
-                <a href="#" className="badge badge-morphic" style={{
+                }}>Morphic Resonance</Link>
+                <Link href="/papers" className="badge badge-morphic" style={{
                   display: 'inline-block',
                   textDecoration: 'none',
-                }}>Morphic Fields</a>
+                }}>ZPF Theory</Link>
               </div>
+
+              <Link href="/papers" style={{
+                display: 'block',
+                marginTop: 'var(--spacing-4)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--primary-purple)',
+                fontWeight: 'var(--font-semibold)',
+                textDecoration: 'none',
+              }}>
+                View all papers →
+              </Link>
             </div>
 
             {/* About Box */}

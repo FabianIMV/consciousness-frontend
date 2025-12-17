@@ -1,5 +1,5 @@
 /**
- * About Page - Consciousness Networks
+ * Contact Page - Consciousness Networks
  */
 
 'use client';
@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { getPageBySlug, processContent } from '@/lib/wordpress';
 import { useEffect, useState } from 'react';
 
-export default function About() {
+export default function Contact() {
   const [content, setContent] = useState<string>('');
   const [title, setTitle] = useState<string>('Contact');
   const [loading, setLoading] = useState(true);
