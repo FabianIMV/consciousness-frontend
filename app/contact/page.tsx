@@ -2,26 +2,13 @@
  * Contact Page - Consciousness Networks
  */
 
-'use client';
-
 import Link from 'next/link';
 import { getPageBySlug, processContent } from '@/lib/wordpress';
-import { useEffect, useState } from 'react';
 
-export default function Contact() {
-  const [content, setContent] = useState<string>('');
-  const [title, setTitle] = useState<string>('Contact');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getPageBySlug('contact').then(page => {
-      if (page) {
-        setTitle(page.title.rendered);
-        setContent(processContent(page.content.rendered));
-      }
-      setLoading(false);
-    });
-  }, []);
+export default async function Contact() {
+  const page = await getPageBySlug('contact');
+  const title = page?.title.rendered || 'Contact';
+  const content = page ? processContent(page.content.rendered) : '';
 
   return (
     <>
@@ -124,29 +111,15 @@ export default function Contact() {
         <section style={{ padding: 'var(--spacing-10) 0' }}>
           <div className="container">
             <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
-              {loading ? (
-                <div style={{ textAlign: 'center', padding: 'var(--spacing-12) 0' }}>
-                  <div style={{
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '48px',
-                    border: '4px solid var(--bg-tertiary)',
-                    borderTopColor: 'var(--primary-purple)',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                  }}></div>
-                </div>
-              ) : (
-                <div
-                  className="article-content"
-                  dangerouslySetInnerHTML={{ __html: content }}
-                  style={{
-                    fontSize: 'var(--text-lg)',
-                    lineHeight: 'var(--leading-relaxed)',
-                    color: 'var(--text-secondary)',
-                  }}
-                />
-              )}
+              <div
+                className="article-content"
+                dangerouslySetInnerHTML={{ __html: content }}
+                style={{
+                  fontSize: 'var(--text-lg)',
+                  lineHeight: 'var(--leading-relaxed)',
+                  color: 'var(--text-secondary)',
+                }}
+              />
             </div>
           </div>
         </section>
