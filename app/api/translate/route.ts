@@ -33,7 +33,16 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ translatedText: translatedHtml });
     } catch (error: any) {
-        console.error('Translation error:', error);
-        return NextResponse.json({ error: 'Translation failed', details: error.message }, { status: 500 });
+        console.error('Translation error detailed:', {
+            message: error.message,
+            stack: error.stack,
+            status: error.status,
+            name: error.name,
+            type: error.constructor.name
+        });
+        return NextResponse.json({
+            error: 'Translation failed',
+            details: error.message
+        }, { status: 500 });
     }
 }

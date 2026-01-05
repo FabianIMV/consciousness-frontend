@@ -11,36 +11,50 @@ export default function LanguageSwitcher() {
     setIsTranslating(true);
 
     try {
-      // Find main content areas to translate
-      // We focus on the most important parts to avoid hitting token limits or slowing down
-      const selectors = ['article', 'h1', 'h2', 'h3', '.article-content', '.nav-desktop', '.nav-mobile'];
+      // Find main content areas
+      const article = document.querySelector('article');
+      const h1 = document.querySelector('h1');
 
-      for (const selector of selectors) {
-        const elements = document.querySelectorAll(selector);
-        for (const el of Array.from(elements)) {
-          // Skip if it's already translated or has a no-translate class
-          if (el.classList.contains('no-translate')) continue;
-
-          const response = await fetch('/api/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              text: el.innerHTML,
-              targetLang: newLang
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            el.innerHTML = data.translatedText;
-          }
-        }
+      if (!article && !h1) {
+        throw new Error('No content found to translate');
       }
 
+      // Combine contents to translate in one go
+      const contentToTranslate = `
+        ${h1 ? `<h1 id="tr-h1">${h1.innerHTML}</h1>` : ''}
+        ${article ? `<div id="tr-article">${article.innerHTML}</div>` : ''}
+      `;
+
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: contentToTranslate,
+          targetLang: newLang
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Server error');
+      }
+
+      const data = await response.json();
+
+      // Update DOM
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(data.translatedText, 'text/html');
+
+      const transH1 = doc.querySelector('#tr-h1');
+      const transArticle = doc.querySelector('#tr-article');
+
+      if (h1 && transH1) h1.innerHTML = transH1.innerHTML;
+      if (article && transArticle) article.innerHTML = transArticle.innerHTML;
+
       setLang(newLang);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Translation failed:', error);
-      alert('Translation failed. Please try again.');
+      alert(`Error: ${error.message}. Verifica tu API Key en Vercel.`);
     } finally {
       setIsTranslating(false);
     }
