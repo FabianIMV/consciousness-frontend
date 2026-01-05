@@ -50,8 +50,6 @@ export const metadata: Metadata = {
   },
 };
 
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-
 export default function RootLayout({
   children,
   params,
@@ -71,7 +69,6 @@ export default function RootLayout({
       </head>
       <body>
         {children}
-        <LanguageSwitcher currentLang={lang} />
       </body>
     </html>
   );
