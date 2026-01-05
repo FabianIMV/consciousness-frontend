@@ -11,19 +11,24 @@ export default function LanguageSwitcher() {
     setIsTranslating(true);
 
     try {
-      // Find main content areas
-      const article = document.querySelector('article');
-      const h1 = document.querySelector('h1');
+      // Find all key content sectors
+      const header = document.querySelector('header');
+      const main = document.querySelector('main');
+      const footer = document.querySelector('footer');
+      const asides = document.querySelectorAll('aside');
 
-      if (!article && !h1) {
+      if (!main && !header) {
         throw new Error('No content found to translate');
       }
 
-      // Combine contents to translate in one go
-      const contentToTranslate = `
-        ${h1 ? `<h1 id="tr-h1">${h1.innerHTML}</h1>` : ''}
-        ${article ? `<div id="tr-article">${article.innerHTML}</div>` : ''}
-      `;
+      // Combine contents to translate in one go with clear boundary IDs
+      let contentToTranslate = '';
+      if (header) contentToTranslate += `<header-tr>${header.innerHTML}</header-tr>`;
+      if (main) contentToTranslate += `<main-tr>${main.innerHTML}</main-tr>`;
+      if (footer) contentToTranslate += `<footer-tr>${footer.innerHTML}</footer-tr>`;
+      asides.forEach((aside, i) => {
+        contentToTranslate += `<aside-tr-${i}>${aside.innerHTML}</aside-tr-${i}>`;
+      });
 
       const response = await fetch('/api/translate', {
         method: 'POST',
@@ -45,16 +50,27 @@ export default function LanguageSwitcher() {
       const parser = new DOMParser();
       const doc = parser.parseFromString(data.translatedText, 'text/html');
 
-      const transH1 = doc.querySelector('#tr-h1');
-      const transArticle = doc.querySelector('#tr-article');
-
-      if (h1 && transH1) h1.innerHTML = transH1.innerHTML;
-      if (article && transArticle) article.innerHTML = transArticle.innerHTML;
+      if (header) {
+        const tr = doc.querySelector('header-tr');
+        if (tr) header.innerHTML = tr.innerHTML;
+      }
+      if (main) {
+        const tr = doc.querySelector('main-tr');
+        if (tr) main.innerHTML = tr.innerHTML;
+      }
+      if (footer) {
+        const tr = doc.querySelector('footer-tr');
+        if (tr) footer.innerHTML = tr.innerHTML;
+      }
+      asides.forEach((aside, i) => {
+        const tr = doc.querySelector(`aside-tr-${i}`);
+        if (tr) aside.innerHTML = tr.innerHTML;
+      });
 
       setLang(newLang);
     } catch (error: any) {
       console.error('Translation failed:', error);
-      alert(`Error: ${error.message}. Verifica tu API Key en Vercel.`);
+      alert(`Error: ${error.message}. Verifica que tu API Key sea válida.`);
     } finally {
       setIsTranslating(false);
     }
