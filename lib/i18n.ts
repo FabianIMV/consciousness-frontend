@@ -15,6 +15,11 @@ export async function translateContent(html: string, targetLang: string): Promis
     }
 
     try {
+        if (!process.env.GEMINI_API_KEY) {
+            console.error('CRITICAL: GEMINI_API_KEY is missing from environment variables.');
+            return html;
+        }
+
         const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
         const prompt = `
@@ -31,16 +36,19 @@ export async function translateContent(html: string, targetLang: string): Promis
       ${html}
     `;
 
+        console.log(`[i18n] Translating content to ${targetLang}... (Length: ${html.length})`);
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const translatedHtml = response.text();
+
+        console.log(`[i18n] Translation success! (Translated length: ${translatedHtml.length})`);
 
         // Store in cache
         translationCache[cacheKey] = translatedHtml;
 
         return translatedHtml;
     } catch (error) {
-        console.error('Server-side translation error:', error);
+        console.error(`[i18n] Server-side translation error for ${targetLang}:`, error);
         return html; // Fallback to original content on error
     }
 }

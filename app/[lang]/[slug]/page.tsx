@@ -26,14 +26,30 @@ export default async function ArticlePage({
   const titleRaw = page.title.rendered;
   const contentRaw = processContent(page.content.rendered);
 
-  const [title, content, backLabel, researchLabel, papersLabel, aboutLabel, contactLabel] = await Promise.all([
+  const [
+    title,
+    content,
+    backLabel,
+    researchLabel,
+    papersLabel,
+    aboutLabel,
+    contactLabel,
+    exploreMoreTitle,
+    exploreMoreText,
+    viewAllArticlesLabel,
+    footerText
+  ] = await Promise.all([
     translateContent(titleRaw, lang),
     translateContent(contentRaw, lang),
     translateContent('Back to Research', lang),
     translateContent('Research', lang),
     translateContent('Papers', lang),
     translateContent('About', lang),
-    translateContent('Contact', lang)
+    translateContent('Contact', lang),
+    translateContent('Explore More Research', lang),
+    translateContent('Discover more insights into consciousness and quantum mechanics', lang),
+    translateContent('View All Articles', lang),
+    translateContent(`© ${new Date().getFullYear()} Consciousness Networks. All rights reserved.`, lang)
   ]);
 
   return (
@@ -85,26 +101,26 @@ export default async function ArticlePage({
           </nav>
 
           <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
-            <Link href="/" style={{
+            <Link href={`/${lang}`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Home</Link>
-            <Link href="/papers" style={{
+            }}>{researchLabel}</Link>
+            <Link href={`/${lang}/papers`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Papers</Link>
-            <Link href="/about" style={{
+            }}>{papersLabel}</Link>
+            <Link href={`/${lang}/about`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>About</Link>
-            <Link href="/contact" style={{
+            }}>{aboutLabel}</Link>
+            <Link href={`/${lang}/contact`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Contact</Link>
+            }}>{contactLabel}</Link>
           </nav>
         </div>
       </header>
@@ -125,7 +141,7 @@ export default async function ArticlePage({
           }}>
             <img
               src={featuredImage}
-              alt={page.title.rendered}
+              alt={title || page.title.rendered}
               style={{
                 width: '100%',
                 height: '100%',
@@ -175,7 +191,7 @@ export default async function ArticlePage({
               borderBottom: '1px solid var(--border-light)',
             }}>
               <time className="metadata">
-                {new Date(page.date).toLocaleDateString('en-US', {
+                {new Date(page.date).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'
@@ -216,7 +232,7 @@ export default async function ArticlePage({
                 color: 'var(--text-primary)',
                 marginBottom: 'var(--spacing-4)',
               }}>
-                Explore More Research
+                {exploreMoreTitle}
               </h2>
 
               <p style={{
@@ -224,11 +240,11 @@ export default async function ArticlePage({
                 color: 'var(--text-secondary)',
                 marginBottom: 'var(--spacing-6)',
               }}>
-                Discover more insights into consciousness and quantum mechanics
+                {exploreMoreText}
               </p>
 
-              <Link href="/" className="btn btn-primary">
-                View All Articles
+              <Link href={`/${lang}`} className="btn btn-primary">
+                {viewAllArticlesLabel}
               </Link>
             </div>
           </div>
@@ -243,7 +259,7 @@ export default async function ArticlePage({
       }}>
         <div className="container" style={{ textAlign: 'center' }}>
           <p className="metadata">
-            © {new Date().getFullYear()} Consciousness Networks. All rights reserved.
+            {footerText}
           </p>
         </div>
       </footer>
