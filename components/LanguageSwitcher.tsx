@@ -1,56 +1,65 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export default function LanguageSwitcher() {
-    const [lang, setLang] = useState('en');
+  const [lang, setLang] = useState('en');
+  const [isTranslating, setIsTranslating] = useState(false);
 
-    useEffect(() => {
-        // Check if google is already loaded
-        if (window.google && window.google.translate) {
-            initTranslate();
-        } else {
-            window.googleTranslateElementInit = initTranslate;
+  const toggleLanguage = async () => {
+    const newLang = lang === 'en' ? 'es' : 'en';
+    setIsTranslating(true);
+
+    try {
+      // Find main content areas to translate
+      // We focus on the most important parts to avoid hitting token limits or slowing down
+      const selectors = ['article', 'h1', 'h2', 'h3', '.article-content', '.nav-desktop', '.nav-mobile'];
+
+      for (const selector of selectors) {
+        const elements = document.querySelectorAll(selector);
+        for (const el of Array.from(elements)) {
+          // Skip if it's already translated or has a no-translate class
+          if (el.classList.contains('no-translate')) continue;
+
+          const response = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: el.innerHTML,
+              targetLang: newLang
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            el.innerHTML = data.translatedText;
+          }
         }
+      }
 
-        function initTranslate() {
-            new window.google.translate.TranslateElement({
-                pageLanguage: 'en',
-                includedLanguages: 'es,en',
-                layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-                autoDisplay: false,
-            }, 'google_translate_element');
-        }
-    }, []);
+      setLang(newLang);
+    } catch (error) {
+      console.error('Translation failed:', error);
+      alert('Translation failed. Please try again.');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
-    const toggleLanguage = () => {
-        const newLang = lang === 'en' ? 'es' : 'en';
-        setLang(newLang);
+  return (
+    <div className="language-switcher-container">
+      <button
+        onClick={toggleLanguage}
+        disabled={isTranslating}
+        className={`btn-translate glow-on-hover ${isTranslating ? 'loading' : ''}`}
+        aria-label={lang === 'en' ? 'Leer en Español' : 'Switch to English'}
+      >
+        <span className="lang-text">
+          {isTranslating ? '✨ Traduciendo...' : (lang === 'en' ? '🇪🇸 Léeme en Español' : '🇬🇧 Back to English')}
+        </span>
+      </button>
 
-        // Find the google translate select element
-        const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-        if (combo) {
-            combo.value = newLang;
-            combo.dispatchEvent(new Event('change'));
-        }
-    };
-
-    return (
-        <div className="language-switcher-container">
-            {/* Hidden google translate element */}
-            <div id="google_translate_element" style={{ display: 'none' }}></div>
-
-            <button
-                onClick={toggleLanguage}
-                className="btn-translate glow-on-hover"
-                aria-label={lang === 'en' ? 'Leer en Español' : 'Switch to English'}
-            >
-                <span className="lang-text">
-                    {lang === 'en' ? '🇪🇸 Léeme en Español' : '🇬🇧 Back to English'}
-                </span>
-            </button>
-
-            <style jsx>{`
+      <style jsx>{`
         .language-switcher-container {
           position: fixed;
           bottom: var(--spacing-6);
@@ -76,7 +85,13 @@ export default function LanguageSwitcher() {
           box-shadow: 0 4px 15px rgba(101, 40, 247, 0.15);
         }
 
-        .btn-translate:hover {
+        .btn-translate.loading {
+          opacity: 0.8;
+          cursor: wait;
+          background: rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-translate:hover:not(.loading) {
           transform: translateY(-4px) scale(1.02);
           background: rgba(255, 255, 255, 0.95);
           box-shadow: 0 8px 25px rgba(101, 40, 247, 0.25);
@@ -99,43 +114,6 @@ export default function LanguageSwitcher() {
           }
         }
       `}</style>
-
-            <style jsx global>{`
-        /* Hide Google Translate Banner and Attribution */
-        .goog-te-banner-frame.skiptranslate,
-        .goog-te-gadget-icon,
-        .goog-te-gadget-simple img,
-        .goog-te-menu-value span:nth-child(2),
-        .goog-te-menu-value span:nth-child(3),
-        .goog-te-menu-value span:nth-child(5),
-        .goog-te-menu-value img {
-          display: none !important;
-        }
-        
-        body {
-          top: 0 !important;
-        }
-
-        .goog-te-gadget {
-          font-family: inherit !important;
-          color: transparent !important;
-        }
-
-        .goog-te-gadget .goog-te-combo {
-          display: none !important;
-        }
-
-        iframe.goog-te-banner-frame {
-          display: none !important;
-        }
-      `}</style>
-        </div>
-    );
-}
-
-declare global {
-    interface Window {
-        google: any;
-        googleTranslateElementInit: () => void;
-    }
+    </div>
+  );
 }
