@@ -203,7 +203,13 @@ export function processContent(html: string): string {
  * Strip HTML tags from content (for excerpts)
  */
 export function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ');
+  if (!html) return '';
+  return html
+    .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '') // Remove style and script blocks
+    .replace(/<[^>]*>/g, '') // Remove all other tags
+    .replace(/&[^;]+;/g, ' ') // Replace entities with space
+    .replace(/\s+/g, ' ') // Collapse multiple whitespace
+    .trim();
 }
 
 /**
