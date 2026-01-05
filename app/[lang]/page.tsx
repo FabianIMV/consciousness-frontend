@@ -5,10 +5,12 @@
 
 import Link from 'next/link';
 import { getPages, getFeaturedImage, stripHtml, truncate } from '@/lib/wordpress';
+import { translateContent } from '@/lib/i18n';
 
 export const revalidate = 60;
 
-export default async function Home() {
+export default async function Home({ params }: { params: { lang: string } }) {
+  const { lang } = params;
   const pages = await getPages();
   const articles = pages.filter(page =>
     !['about', 'contact', 'papers', 'home'].includes(page.slug)
@@ -16,7 +18,23 @@ export default async function Home() {
 
   // Featured article (first one)
   const featured = articles[0];
-  const otherArticles = articles.slice(1);
+  const otherArticlesRaw = articles.slice(1);
+
+  // Pre-translate content to avoid await in map callback
+  const [translatedArticles, recentResearchLabel, sidebarQuickLinksLabel, sidebarPapersLabel, sidebarLearnMoreLabel, sidebarAboutTitle, sidebarAboutText] = await Promise.all([
+    Promise.all(otherArticlesRaw.map(async (article) => ({
+      ...article,
+      translatedTitle: await translateContent(stripHtml(article.title.rendered), lang),
+      translatedExcerpt: await translateContent(truncate(stripHtml(article.content.rendered), 150), lang),
+      readMoreLabel: await translateContent('Read more →', lang)
+    }))),
+    translateContent('Recent Research', lang),
+    translateContent('Quick Links', lang),
+    translateContent('Must-Read Papers', lang),
+    translateContent('Learn More', lang),
+    translateContent('About This Research', lang),
+    translateContent('Exploring the quantum nature of consciousness through interdisciplinary research.', lang)
+  ]);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
@@ -44,26 +62,26 @@ export default async function Home() {
           </Link>
 
           <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)' }}>
-            <Link href="/" style={{
+            <Link href={`/${lang}`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-semibold)',
               color: 'var(--primary-purple)',
-            }}>Research</Link>
-            <Link href="/papers" style={{
+            }}>{await translateContent('Research', lang)}</Link>
+            <Link href={`/${lang}/papers`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Papers</Link>
-            <Link href="/about" style={{
+            }}>{await translateContent('Papers', lang)}</Link>
+            <Link href={`/${lang}/about`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>About</Link>
-            <Link href="/contact" style={{
+            }}>{await translateContent('About', lang)}</Link>
+            <Link href={`/${lang}/contact`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Contact</Link>
+            }}>{await translateContent('Contact', lang)}</Link>
           </nav>
 
           <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
@@ -117,7 +135,7 @@ export default async function Home() {
                 textTransform: 'uppercase',
                 letterSpacing: 'var(--tracking-wider)',
                 marginBottom: 'var(--spacing-4)',
-              }}>Quick Links</h3>
+              }}>{sidebarQuickLinksLabel}</h3>
 
               <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
                 <Link href="/" style={{
@@ -162,7 +180,7 @@ export default async function Home() {
               padding: 'var(--spacing-8) 0',
             }}>
               <div className="badge" style={{ marginBottom: 'var(--spacing-4)' }}>
-                Quantum Consciousness Research
+                {await translateContent('Quantum Consciousness Research', lang)}
               </div>
 
               <h1 className="gradient-text" style={{
@@ -172,7 +190,7 @@ export default async function Home() {
                 lineHeight: 'var(--leading-tight)',
                 marginBottom: 'var(--spacing-4)',
               }}>
-                Exploring the Architecture of Consciousness
+                {await translateContent('Exploring the Architecture of Consciousness', lang)}
               </h1>
 
               <p className="lead" style={{
@@ -181,14 +199,14 @@ export default async function Home() {
                 lineHeight: 'var(--leading-relaxed)',
                 marginBottom: 'var(--spacing-6)',
               }}>
-                Research at the intersection of quantum mechanics, neuroscience, and artificial intelligence
+                {await translateContent('Research at the intersection of quantum mechanics, neuroscience, and artificial intelligence', lang)}
               </p>
             </section>
 
             {/* Featured Article */}
             {featured && (
               <section id="featured" style={{ marginBottom: 'var(--spacing-10)' }}>
-                <Link href={`/${featured.slug}`} className="card" style={{
+                <Link href={`/${lang}/${featured.slug}`} className="card" style={{
                   display: 'block',
                   textDecoration: 'none',
                   color: 'inherit',
@@ -215,7 +233,7 @@ export default async function Home() {
 
                   <div style={{ padding: 'var(--spacing-8)' }}>
                     <div className="badge badge-quantum" style={{ marginBottom: 'var(--spacing-3)' }}>
-                      Featured
+                      {await translateContent('Featured', lang)}
                     </div>
 
                     <h2 style={{
@@ -226,7 +244,7 @@ export default async function Home() {
                       marginBottom: 'var(--spacing-4)',
                       lineHeight: 'var(--leading-tight)',
                     }}>
-                      {stripHtml(featured.title.rendered)}
+                      {await translateContent(stripHtml(featured.title.rendered), lang)}
                     </h2>
 
                     <p style={{
@@ -234,7 +252,7 @@ export default async function Home() {
                       lineHeight: 'var(--leading-relaxed)',
                       color: 'var(--text-secondary)',
                     }}>
-                      {truncate(stripHtml(featured.content.rendered), 200)}
+                      {await translateContent(truncate(stripHtml(featured.content.rendered), 200), lang)}
                     </p>
                   </div>
                 </Link>
@@ -250,7 +268,7 @@ export default async function Home() {
                 marginBottom: 'var(--spacing-6)',
                 color: 'var(--text-primary)',
               }}>
-                Recent Research
+                {recentResearchLabel}
               </h2>
 
               <div style={{
@@ -258,10 +276,10 @@ export default async function Home() {
                 flexDirection: 'column',
                 gap: 'var(--spacing-6)',
               }}>
-                {otherArticles.map((article) => (
+                {translatedArticles.map((article) => (
                   <Link
                     key={article.id}
-                    href={`/${article.slug}`}
+                    href={`/${lang}/${article.slug}`}
                     style={{
                       display: 'grid',
                       gridTemplateColumns: getFeaturedImage(article) ? '200px 1fr' : '1fr',
@@ -304,7 +322,7 @@ export default async function Home() {
                         color: 'var(--text-primary)',
                         marginBottom: 'var(--spacing-2)',
                       }}>
-                        {stripHtml(article.title.rendered)}
+                        {article.translatedTitle}
                       </h3>
 
                       <p style={{
@@ -313,7 +331,7 @@ export default async function Home() {
                         lineHeight: 'var(--leading-relaxed)',
                         marginBottom: 'var(--spacing-3)',
                       }}>
-                        {truncate(stripHtml(article.content.rendered), 150)}
+                        {article.translatedExcerpt}
                       </p>
 
                       <span style={{
@@ -321,7 +339,7 @@ export default async function Home() {
                         color: 'var(--primary-purple)',
                         fontWeight: 'var(--font-semibold)',
                       }}>
-                        Read more →
+                        {article.readMoreLabel}
                       </span>
                     </div>
                   </Link>
@@ -353,21 +371,21 @@ export default async function Home() {
               </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-                <Link href="/papers" className="badge badge-quantum" style={{
+                <Link href={`/${lang}/papers`} className="badge badge-quantum" style={{
                   display: 'inline-block',
                   textDecoration: 'none',
-                }}>Quantum Consciousness</Link>
-                <Link href="/papers" className="badge badge-ai" style={{
+                }}>{await translateContent('Quantum Consciousness', lang)}</Link>
+                <Link href={`/${lang}/papers`} className="badge badge-ai" style={{
                   display: 'inline-block',
                   textDecoration: 'none',
-                }}>Morphic Resonance</Link>
-                <Link href="/papers" className="badge badge-morphic" style={{
+                }}>{await translateContent('Morphic Resonance', lang)}</Link>
+                <Link href={`/${lang}/papers`} className="badge badge-morphic" style={{
                   display: 'inline-block',
                   textDecoration: 'none',
-                }}>ZPF Theory</Link>
+                }}>{await translateContent('ZPF Theory', lang)}</Link>
               </div>
 
-              <Link href="/papers" style={{
+              <Link href={`/${lang}/papers`} style={{
                 display: 'block',
                 marginTop: 'var(--spacing-4)',
                 fontSize: 'var(--text-sm)',
@@ -375,7 +393,7 @@ export default async function Home() {
                 fontWeight: 'var(--font-semibold)',
                 textDecoration: 'none',
               }}>
-                View all papers →
+                {await translateContent('View all papers →', lang)}
               </Link>
             </div>
 
@@ -430,6 +448,6 @@ export default async function Home() {
           </p>
         </div>
       </footer>
-    </div>
+    </div >
   );
 }

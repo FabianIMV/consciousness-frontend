@@ -2,78 +2,31 @@
 
 import { useState } from 'react';
 
-export default function LanguageSwitcher() {
-  const [lang, setLang] = useState('en');
+export default function LanguageSwitcher({ currentLang }: { currentLang: string }) {
+  const [lang, setLang] = useState(currentLang || 'en');
   const [isTranslating, setIsTranslating] = useState(false);
 
-  const toggleLanguage = async () => {
+  const { useRouter, usePathname } = require('next/navigation');
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const toggleLanguage = () => {
     const newLang = lang === 'en' ? 'es' : 'en';
-    setIsTranslating(true);
 
-    try {
-      // Find all key content sectors
-      const header = document.querySelector('header');
-      const main = document.querySelector('main');
-      const footer = document.querySelector('footer');
-      const asides = document.querySelectorAll('aside');
-
-      if (!main && !header) {
-        throw new Error('No content found to translate');
-      }
-
-      // Combine contents to translate in one go with clear boundary IDs
-      let contentToTranslate = '';
-      if (header) contentToTranslate += `<header-tr>${header.innerHTML}</header-tr>`;
-      if (main) contentToTranslate += `<main-tr>${main.innerHTML}</main-tr>`;
-      if (footer) contentToTranslate += `<footer-tr>${footer.innerHTML}</footer-tr>`;
-      asides.forEach((aside, i) => {
-        contentToTranslate += `<aside-tr-${i}>${aside.innerHTML}</aside-tr-${i}>`;
-      });
-
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: contentToTranslate,
-          targetLang: newLang
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || 'Server error');
-      }
-
-      const data = await response.json();
-
-      // Update DOM
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(data.translatedText, 'text/html');
-
-      if (header) {
-        const tr = doc.querySelector('header-tr');
-        if (tr) header.innerHTML = tr.innerHTML;
-      }
-      if (main) {
-        const tr = doc.querySelector('main-tr');
-        if (tr) main.innerHTML = tr.innerHTML;
-      }
-      if (footer) {
-        const tr = doc.querySelector('footer-tr');
-        if (tr) footer.innerHTML = tr.innerHTML;
-      }
-      asides.forEach((aside, i) => {
-        const tr = doc.querySelector(`aside-tr-${i}`);
-        if (tr) aside.innerHTML = tr.innerHTML;
-      });
-
-      setLang(newLang);
-    } catch (error: any) {
-      console.error('Translation failed:', error);
-      alert(`Error: ${error.message}. Verifica que tu API Key sea válida.`);
-    } finally {
-      setIsTranslating(false);
+    // Construct new path safely
+    const segments = pathname.split('/');
+    // segments[0] is usually empty (from starting /)
+    // segments[1] should be the current locale (en or es)
+    if (segments[1] === 'en' || segments[1] === 'es') {
+      segments[1] = newLang;
+    } else {
+      // If no locale in path, insert it
+      segments.splice(1, 0, newLang);
     }
+
+    const newPath = segments.join('/') || '/';
+    router.push(newPath);
+    setLang(newLang);
   };
 
   return (

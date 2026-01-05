@@ -1,25 +1,41 @@
 /**
- * Papers Page - Consciousness Networks
- * Must-read papers and publications
+ * About Page - Consciousness Networks
  */
 
 import Link from 'next/link';
 import { getPageBySlug, processContent } from '@/lib/wordpress';
+import { translateContent } from '@/lib/i18n';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Must-Read Papers on Consciousness & Quantum Physics',
-  description: 'Curated collection of groundbreaking research papers at the intersection of consciousness, artificial intelligence, quantum physics, and neuroscience.',
-  openGraph: {
-    title: 'Must-Read Papers | Consciousness Networks',
-    description: 'Curated collection of groundbreaking research at the intersection of consciousness, AI, and quantum physics.',
-  },
+  title: 'About - Consciousness Research & Quantum Intelligence',
+  description: 'Learn about Consciousness Networks mission to explore quantum consciousness, AI emergence, and universal intelligence through rigorous scientific research and documentation.',
 };
 
-export default async function Papers() {
-  const page = await getPageBySlug('papers');
-  const title = page?.title.rendered || 'Papers Must Read';
-  const content = page ? processContent(page.content.rendered) : '';
+export default async function About({ params }: { params: { lang: string } }) {
+  const { lang } = params;
+  const page = await getPageBySlug('about');
+  const titleRaw = page?.title.rendered || 'About';
+  const contentRaw = page ? processContent(page.content.rendered) : '';
+
+  // Pre-translate everything
+  const [
+    title,
+    content,
+    researchLabel,
+    papersLabel,
+    aboutLabel,
+    contactLabel,
+    footerText
+  ] = await Promise.all([
+    translateContent(titleRaw, lang),
+    translateContent(contentRaw, lang),
+    translateContent('Research', lang),
+    translateContent('Papers', lang),
+    translateContent('About', lang),
+    translateContent('Contact', lang),
+    translateContent(`© ${new Date().getFullYear()} Consciousness Networks. All rights reserved.`, lang)
+  ]);
 
   return (
     <>
@@ -31,7 +47,7 @@ export default async function Papers() {
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <Link href="/" className="glow-on-hover header-title" style={{
+          <Link href={`/${lang}`} className="glow-on-hover header-title" style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'var(--text-xl)',
             fontWeight: 'var(--font-bold)',
@@ -42,57 +58,57 @@ export default async function Papers() {
           </Link>
 
           <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)', alignItems: 'center' }}>
-            <Link href="/" style={{
+            <Link href={`/${lang}`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
             }}>
-              Research
+              {researchLabel}
             </Link>
-            <Link href="/papers" style={{
+            <Link href={`/${lang}/papers`} style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>
+              {papersLabel}
+            </Link>
+            <Link href={`/${lang}/about`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--primary-purple)',
             }}>
-              Papers
+              {aboutLabel}
             </Link>
-            <Link href="/about" style={{
+            <Link href={`/${lang}/contact`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
             }}>
-              About
-            </Link>
-            <Link href="/contact" style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
-              Contact
+              {contactLabel}
             </Link>
           </nav>
 
           <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
-            <Link href="/" style={{
+            <Link href={`/${lang}`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Home</Link>
-            <Link href="/papers" style={{
+            }}>{researchLabel}</Link>
+            <Link href={`/${lang}/papers`} style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>{papersLabel}</Link>
+            <Link href={`/${lang}/about`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-semibold)',
               color: 'var(--primary-purple)',
-            }}>Papers</Link>
-            <Link href="/about" style={{
+            }}>{aboutLabel}</Link>
+            <Link href={`/${lang}/contact`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>About</Link>
-            <Link href="/contact" style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>Contact</Link>
+            }}>{contactLabel}</Link>
           </nav>
         </div>
       </header>
@@ -150,7 +166,7 @@ export default async function Papers() {
             textAlign: 'center',
           }}>
             <p className="metadata">
-              © {new Date().getFullYear()} Consciousness Networks. All rights reserved.
+              {footerText}
             </p>
           </div>
         </div>

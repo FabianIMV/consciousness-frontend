@@ -5,6 +5,7 @@
 
 import Link from 'next/link';
 import { getPageBySlug, getFeaturedImage, processContent } from '@/lib/wordpress';
+import { translateContent } from '@/lib/i18n';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -12,15 +13,28 @@ export const dynamic = 'force-dynamic';
 export default async function ArticlePage({
   params,
 }: {
-  params: { slug: string };
+  params: { slug: string; lang: string };
 }) {
-  const page = await getPageBySlug(params.slug);
+  const { lang, slug } = params;
+  const page = await getPageBySlug(slug);
 
   if (!page) {
     notFound();
   }
 
   const featuredImage = getFeaturedImage(page);
+  const titleRaw = page.title.rendered;
+  const contentRaw = processContent(page.content.rendered);
+
+  const [title, content, backLabel, researchLabel, papersLabel, aboutLabel, contactLabel] = await Promise.all([
+    translateContent(titleRaw, lang),
+    translateContent(contentRaw, lang),
+    translateContent('Back to Research', lang),
+    translateContent('Research', lang),
+    translateContent('Papers', lang),
+    translateContent('About', lang),
+    translateContent('Contact', lang)
+  ]);
 
   return (
     <>
@@ -38,7 +52,7 @@ export default async function ArticlePage({
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <Link href="/" className="glow-on-hover header-title" style={{
+          <Link href={`/${lang}`} className="glow-on-hover header-title" style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'var(--text-xl)',
             fontWeight: 'var(--font-bold)',
@@ -48,26 +62,26 @@ export default async function ArticlePage({
           </Link>
 
           <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)' }}>
-            <Link href="/" style={{
+            <Link href={`/${lang}`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Research</Link>
-            <Link href="/papers" style={{
+            }}>{researchLabel}</Link>
+            <Link href={`/${lang}/papers`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Papers</Link>
-            <Link href="/about" style={{
+            }}>{papersLabel}</Link>
+            <Link href={`/${lang}/about`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>About</Link>
-            <Link href="/contact" style={{
+            }}>{aboutLabel}</Link>
+            <Link href={`/${lang}/contact`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Contact</Link>
+            }}>{contactLabel}</Link>
           </nav>
 
           <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
@@ -129,7 +143,7 @@ export default async function ArticlePage({
             padding: 'var(--spacing-8) var(--spacing-4)',
           }}>
             {/* Back Link */}
-            <Link href="/" style={{
+            <Link href={`/${lang}`} style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 'var(--spacing-2)',
@@ -139,7 +153,7 @@ export default async function ArticlePage({
               marginBottom: 'var(--spacing-8)',
               textDecoration: 'none',
             }}>
-              ← Back to Research
+              ← {backLabel}
             </Link>
 
             {/* Title */}
@@ -151,7 +165,7 @@ export default async function ArticlePage({
               lineHeight: 'var(--leading-tight)',
               marginBottom: 'var(--spacing-8)',
             }}>
-              {page.title.rendered}
+              {title}
             </h1>
 
             {/* Date */}
@@ -172,7 +186,7 @@ export default async function ArticlePage({
             {/* Article Body */}
             <div
               className="article-content"
-              dangerouslySetInnerHTML={{ __html: processContent(page.content.rendered) }}
+              dangerouslySetInnerHTML={{ __html: content }}
               style={{
                 fontSize: 'var(--text-lg)',
                 lineHeight: 'var(--leading-relaxed)',

@@ -1,24 +1,32 @@
 /**
- * About Page - Consciousness Networks
+ * Papers Page - Consciousness Networks
+ * Must-read papers and publications
  */
 
 import Link from 'next/link';
 import { getPageBySlug, processContent } from '@/lib/wordpress';
+import { translateContent } from '@/lib/i18n';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'About - Consciousness Research & Quantum Intelligence',
-  description: 'Learn about Consciousness Networks mission to explore quantum consciousness, AI emergence, and universal intelligence through rigorous scientific research and documentation.',
-  openGraph: {
-    title: 'About Consciousness Networks',
-    description: 'Exploring the intersection of artificial intelligence, quantum physics, and consciousness studies.',
-  },
+  title: 'Must-Read Papers on Consciousness & Quantum Physics',
+  description: 'Curated collection of groundbreaking research papers at the intersection of consciousness, artificial intelligence, quantum physics, and neuroscience.',
 };
 
-export default async function About() {
-  const page = await getPageBySlug('about');
-  const title = page?.title.rendered || 'About';
-  const content = page ? processContent(page.content.rendered) : '';
+export default async function Papers({ params }: { params: { lang: string } }) {
+  const { lang } = params;
+  const page = await getPageBySlug('papers');
+  const titleRaw = page?.title.rendered || 'Papers Must Read';
+  const contentRaw = page ? processContent(page.content.rendered) : '';
+
+  const [title, content, researchLabel, papersLabel, aboutLabel, contactLabel] = await Promise.all([
+    translateContent(titleRaw, lang),
+    translateContent(contentRaw, lang),
+    translateContent('Research', lang),
+    translateContent('Papers', lang),
+    translateContent('About', lang),
+    translateContent('Contact', lang)
+  ]);
 
   return (
     <>
@@ -30,7 +38,7 @@ export default async function About() {
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <Link href="/" className="glow-on-hover header-title" style={{
+          <Link href={`/${lang}`} className="glow-on-hover header-title" style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'var(--text-xl)',
             fontWeight: 'var(--font-bold)',
@@ -41,33 +49,33 @@ export default async function About() {
           </Link>
 
           <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)', alignItems: 'center' }}>
-            <Link href="/" style={{
+            <Link href={`/${lang}`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
             }}>
-              Research
+              {researchLabel}
             </Link>
-            <Link href="/papers" style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
-              Papers
-            </Link>
-            <Link href="/about" style={{
+            <Link href={`/${lang}/papers`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--primary-purple)',
             }}>
-              About
+              {papersLabel}
             </Link>
-            <Link href="/contact" style={{
+            <Link href={`/${lang}/about`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
             }}>
-              Contact
+              {aboutLabel}
+            </Link>
+            <Link href={`/${lang}/contact`} style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
+            }}>
+              {contactLabel}
             </Link>
           </nav>
 
@@ -79,13 +87,13 @@ export default async function About() {
             }}>Home</Link>
             <Link href="/papers" style={{
               fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
+              fontWeight: 'var(--font-semibold)',
+              color: 'var(--primary-purple)',
             }}>Papers</Link>
             <Link href="/about" style={{
               fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-semibold)',
-              color: 'var(--primary-purple)',
+              fontWeight: 'var(--font-medium)',
+              color: 'var(--text-secondary)',
             }}>About</Link>
             <Link href="/contact" style={{
               fontSize: 'var(--text-xs)',

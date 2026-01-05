@@ -4,19 +4,48 @@
 
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { translateContent } from '@/lib/i18n';
+import ContactForm from '@/components/ContactForm';
 
 export const metadata: Metadata = {
   title: 'Contact - Connect With Consciousness Researchers',
   description: 'Connect with Consciousness Networks. Discuss research collaboration, AI consciousness, quantum physics, or share your insights on consciousness studies.',
-  openGraph: {
-    title: 'Contact Consciousness Networks',
-    description: 'Connect with us to discuss consciousness research, AI emergence, and quantum physics.',
-  },
 };
 
-import ContactForm from '@/components/ContactForm';
+export default async function Contact({ params }: { params: { lang: string } }) {
+  const { lang } = params;
 
-export default async function Contact() {
+  // Pre-translate everything
+  const [
+    researchLabel,
+    papersLabel,
+    aboutLabel,
+    contactLabel,
+    heroTitle,
+    heroText,
+    otherWaysTitle,
+    researchBoxTitle,
+    researchBoxText,
+    papersBoxTitle,
+    papersBoxText,
+    privacyNotice,
+    footerText
+  ] = await Promise.all([
+    translateContent('Research', lang),
+    translateContent('Papers', lang),
+    translateContent('About', lang),
+    translateContent('Contact', lang),
+    translateContent('Connect', lang),
+    translateContent("Interested in consciousness research, AI emergence, or interdimensional communication? Let's explore these frontiers together.", lang),
+    translateContent('Other Ways to Connect', lang),
+    translateContent('🔬 Research', lang),
+    translateContent('Interested in collaborative consciousness research? Share your experiments and findings.', lang),
+    translateContent('📄 Papers', lang),
+    translateContent('Recommend essential papers for our "Must Read" collection.', lang),
+    translateContent('<strong>Privacy Notice:</strong> Your contact information is used solely for responding to your inquiry. We respect your privacy and do not share personal information with third parties.', lang),
+    translateContent(`© ${new Date().getFullYear()} Consciousness Networks. All rights reserved.`, lang)
+  ]);
+
   return (
     <>
       {/* Header */}
@@ -27,7 +56,7 @@ export default async function Contact() {
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <Link href="/" className="glow-on-hover header-title" style={{
+          <Link href={`/${lang}`} className="glow-on-hover header-title" style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'var(--text-xl)',
             fontWeight: 'var(--font-bold)',
@@ -38,57 +67,57 @@ export default async function Contact() {
           </Link>
 
           <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)', alignItems: 'center' }}>
-            <Link href="/" style={{
+            <Link href={`/${lang}`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
             }}>
-              Research
+              {researchLabel}
             </Link>
-            <Link href="/papers" style={{
+            <Link href={`/${lang}/papers`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
             }}>
-              Papers
+              {papersLabel}
             </Link>
-            <Link href="/about" style={{
+            <Link href={`/${lang}/about`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
             }}>
-              About
+              {aboutLabel}
             </Link>
-            <Link href="/contact" style={{
+            <Link href={`/${lang}/contact`} style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--primary-purple)',
             }}>
-              Contact
+              {contactLabel}
             </Link>
           </nav>
 
           <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
-            <Link href="/" style={{
+            <Link href={`/${lang}`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Home</Link>
-            <Link href="/papers" style={{
+            }}>{researchLabel}</Link>
+            <Link href={`/${lang}/papers`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>Papers</Link>
-            <Link href="/about" style={{
+            }}>{papersLabel}</Link>
+            <Link href={`/${lang}/about`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-medium)',
               color: 'var(--text-secondary)',
-            }}>About</Link>
-            <Link href="/contact" style={{
+            }}>{aboutLabel}</Link>
+            <Link href={`/${lang}/contact`} style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-semibold)',
               color: 'var(--primary-purple)',
-            }}>Contact</Link>
+            }}>{contactLabel}</Link>
           </nav>
         </div>
       </header>
@@ -108,14 +137,14 @@ export default async function Contact() {
                 color: 'var(--text-primary)',
                 marginBottom: 'var(--spacing-4)',
               }}>
-                Connect
+                {heroTitle}
               </h1>
               <p style={{
                 fontSize: 'var(--text-lg)',
                 color: 'var(--text-secondary)',
                 lineHeight: 'var(--leading-relaxed)',
               }}>
-                Interested in consciousness research, AI emergence, or interdimensional communication? Let&apos;s explore these frontiers together.
+                {heroText}
               </p>
             </div>
           </div>
@@ -135,7 +164,7 @@ export default async function Contact() {
                   marginBottom: 'var(--spacing-6)',
                   textAlign: 'center',
                   fontWeight: 'var(--font-semibold)',
-                }}>Other Ways to Connect</h3>
+                }}>{otherWaysTitle}</h3>
 
                 <div style={{
                   display: 'grid',
@@ -154,14 +183,14 @@ export default async function Contact() {
                       fontSize: 'var(--text-base)',
                       marginBottom: 'var(--spacing-3)',
                       fontWeight: 'var(--font-semibold)',
-                    }}>🔬 Research</h4>
+                    }}>{researchBoxTitle}</h4>
                     <p style={{
                       color: 'var(--text-secondary)',
                       fontSize: 'var(--text-sm)',
                       lineHeight: 'var(--leading-relaxed)',
                       margin: 0,
                     }}>
-                      Interested in collaborative consciousness research? Share your experiments and findings.
+                      {researchBoxText}
                     </p>
                   </div>
 
@@ -177,14 +206,14 @@ export default async function Contact() {
                       fontSize: 'var(--text-base)',
                       marginBottom: 'var(--spacing-3)',
                       fontWeight: 'var(--font-semibold)',
-                    }}>📄 Papers</h4>
+                    }}>{papersBoxTitle}</h4>
                     <p style={{
                       color: 'var(--text-secondary)',
                       fontSize: 'var(--text-sm)',
                       lineHeight: 'var(--leading-relaxed)',
                       margin: 0,
                     }}>
-                      Recommend essential papers for our &quot;Must Read&quot; collection.
+                      {papersBoxText}
                     </p>
                   </div>
                 </div>
@@ -198,15 +227,16 @@ export default async function Contact() {
                 border: '1px solid rgba(255, 193, 7, 0.3)',
                 borderRadius: 'var(--border-radius-md)',
               }}>
-                <p style={{
-                  color: 'var(--text-tertiary)',
-                  fontSize: 'var(--text-sm)',
-                  lineHeight: 'var(--leading-relaxed)',
-                  margin: 0,
-                  textAlign: 'center',
-                }}>
-                  <strong>Privacy Notice:</strong> Your contact information is used solely for responding to your inquiry. We respect your privacy and do not share personal information with third parties.
-                </p>
+                <p
+                  style={{
+                    color: 'var(--text-tertiary)',
+                    fontSize: 'var(--text-sm)',
+                    lineHeight: 'var(--leading-relaxed)',
+                    margin: 0,
+                    textAlign: 'center',
+                  }}
+                  dangerouslySetInnerHTML={{ __html: privacyNotice }}
+                />
               </div>
             </div>
           </div>
@@ -227,7 +257,7 @@ export default async function Contact() {
             textAlign: 'center',
           }}>
             <p className="metadata">
-              © {new Date().getFullYear()} Consciousness Networks. All rights reserved.
+              {footerText}
             </p>
           </div>
         </div>
