@@ -1,20 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const locales = ['en', 'es'];
 const defaultLocale = 'en';
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // 1. Check if the pathname already has a locale
-    const pathnameHasLocale = locales.some(
-        (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
-    );
-
-    if (pathnameHasLocale) return;
-
-    // 2. Skip internal Next.js paths, api routes, and static files
+    // Skip internal Next.js paths, api routes, and static files
     if (
         pathname.startsWith('/_next') ||
         pathname.includes('/api/') ||
@@ -24,10 +16,25 @@ export function middleware(request: NextRequest) {
         return;
     }
 
-    // 3. Redirect if there is no locale
-    // We keep the original path but prefix it with the default locale
-    request.nextUrl.pathname = `/${defaultLocale}${pathname}`;
-    return NextResponse.redirect(request.nextUrl);
+    // If path starts with /en, redirect to the same path without /en
+    if (pathname.startsWith('/en/')) {
+        const newPath = pathname.replace('/en', '') || '/';
+        request.nextUrl.pathname = newPath;
+        return NextResponse.redirect(request.nextUrl);
+    }
+    if (pathname === '/en') {
+        request.nextUrl.pathname = '/';
+        return NextResponse.redirect(request.nextUrl);
+    }
+
+    // /es paths are handled by the [lang] directory - let them through
+    if (pathname.startsWith('/es/') || pathname === '/es') {
+        return;
+    }
+
+    // All other paths are English (default) - rewrite internally to /en/...
+    request.nextUrl.pathname = `/en${pathname}`;
+    return NextResponse.rewrite(request.nextUrl);
 }
 
 export const config = {

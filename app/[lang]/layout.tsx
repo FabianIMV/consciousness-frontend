@@ -62,10 +62,10 @@ export default function RootLayout({
   return (
     <html lang={lang}>
       <head>
-        <link rel="canonical" href={`https://consciousnessnetworks.com/${lang === 'en' ? '' : lang}`} />
-        <link rel="alternate" href="https://consciousnessnetworks.com/en" hrefLang="en" />
+        <link rel="canonical" href={`https://consciousnessnetworks.com${lang === 'en' ? '' : '/' + lang}`} />
+        <link rel="alternate" href="https://consciousnessnetworks.com/" hrefLang="en" />
         <link rel="alternate" href="https://consciousnessnetworks.com/es" hrefLang="es" />
-        <link rel="alternate" href="https://consciousnessnetworks.com/en" hrefLang="x-default" />
+        <link rel="alternate" href="https://consciousnessnetworks.com/" hrefLang="x-default" />
       </head>
       <body>
         {children}
