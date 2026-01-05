@@ -226,7 +226,7 @@ export default async function Home() {
                       marginBottom: 'var(--spacing-4)',
                       lineHeight: 'var(--leading-tight)',
                     }}>
-                      {featured.title.rendered}
+                      {stripHtml(featured.title.rendered)}
                     </h2>
 
                     <p style={{
@@ -304,7 +304,7 @@ export default async function Home() {
                         color: 'var(--text-primary)',
                         marginBottom: 'var(--spacing-2)',
                       }}>
-                        {article.title.rendered}
+                        {stripHtml(article.title.rendered)}
                       </h3>
 
                       <p style={{

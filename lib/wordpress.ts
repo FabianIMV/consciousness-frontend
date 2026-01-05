@@ -207,7 +207,8 @@ export function stripHtml(html: string): string {
   return html
     .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '') // Remove style and script blocks
     .replace(/<[^>]*>/g, '') // Remove all other tags
-    .replace(/&[^;]+;/g, ' ') // Replace entities with space
+    .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec)) // Decode numeric entities
+    .replace(/&[a-z]+;/gi, ' ') // Replace other entities with space for now
     .replace(/\s+/g, ' ') // Collapse multiple whitespace
     .trim();
 }
