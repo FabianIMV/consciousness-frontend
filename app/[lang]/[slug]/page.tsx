@@ -4,7 +4,7 @@
  */
 
 import Link from 'next/link';
-import { getPageBySlug, getFeaturedImage, processContent } from '@/lib/wordpress';
+import { getPageBySlug, getFeaturedImage, processContent, decodeHtmlEntities } from '@/lib/wordpress';
 import { translateContent } from '@/lib/i18n';
 import { notFound } from 'next/navigation';
 
@@ -23,7 +23,7 @@ export default async function ArticlePage({
   }
 
   const featuredImage = getFeaturedImage(page);
-  const titleRaw = page.title.rendered;
+  const titleRaw = decodeHtmlEntities(page.title.rendered);
   const contentRaw = processContent(page.content.rendered);
 
   const [

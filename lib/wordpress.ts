@@ -214,6 +214,23 @@ export function stripHtml(html: string): string {
 }
 
 /**
+ * Decode HTML entities in text
+ * Converts entities like &#8217; to their actual characters
+ */
+export function decodeHtmlEntities(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
+/**
  * Truncate text to a specific length
  */
 export function truncate(text: string, length: number = 150): string {
@@ -229,11 +246,15 @@ export function getFeaturedImage(page: WordPressPage | WordPressPost): string | 
   // Try featured media first
   if (page._embedded?.['wp:featuredmedia']?.[0]) {
     const media = page._embedded['wp:featuredmedia'][0];
+    // Try different size options, fallback to source_url (important for webp)
     const url = (media as any).media_details?.sizes?.full?.source_url
       || (media as any).media_details?.sizes?.large?.source_url
       || (media as any).media_details?.sizes?.medium?.source_url
+      || (media as any).source_url
       || media.source_url;
-    return toRelativeUrl(url);
+    if (url) {
+      return toRelativeUrl(url);
+    }
   }
 
   // Fallback: Extract first image from content HTML

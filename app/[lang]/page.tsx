@@ -4,7 +4,7 @@
  */
 
 import Link from 'next/link';
-import { getPages, getFeaturedImage, stripHtml, truncate } from '@/lib/wordpress';
+import { getPages, getFeaturedImage, stripHtml, truncate, decodeHtmlEntities } from '@/lib/wordpress';
 import { translateContent } from '@/lib/i18n';
 
 export const revalidate = 60;
@@ -24,7 +24,7 @@ export default async function Home({ params }: { params: { lang: string } }) {
   const [translatedArticles, recentResearchLabel, sidebarQuickLinksLabel, sidebarPapersLabel, sidebarLearnMoreLabel, sidebarAboutTitle, sidebarAboutText] = await Promise.all([
     Promise.all(otherArticlesRaw.map(async (article) => ({
       ...article,
-      translatedTitle: await translateContent(stripHtml(article.title.rendered), lang),
+      translatedTitle: await translateContent(decodeHtmlEntities(stripHtml(article.title.rendered)), lang),
       translatedExcerpt: await translateContent(truncate(stripHtml(article.content.rendered), 150), lang),
       readMoreLabel: await translateContent('Read more →', lang)
     }))),
@@ -221,7 +221,7 @@ export default async function Home({ params }: { params: { lang: string } }) {
                     }}>
                       <img
                         src={getFeaturedImage(featured)!}
-                        alt={featured.title.rendered}
+                        alt={decodeHtmlEntities(stripHtml(featured.title.rendered))}
                         style={{
                           width: '100%',
                           height: '100%',
@@ -244,7 +244,7 @@ export default async function Home({ params }: { params: { lang: string } }) {
                       marginBottom: 'var(--spacing-4)',
                       lineHeight: 'var(--leading-tight)',
                     }}>
-                      {await translateContent(stripHtml(featured.title.rendered), lang)}
+                      {await translateContent(decodeHtmlEntities(stripHtml(featured.title.rendered)), lang)}
                     </h2>
 
                     <p style={{
@@ -304,7 +304,7 @@ export default async function Home({ params }: { params: { lang: string } }) {
                       }}>
                         <img
                           src={getFeaturedImage(article)!}
-                          alt={article.title.rendered}
+                          alt={decodeHtmlEntities(stripHtml(article.title.rendered))}
                           style={{
                             width: '100%',
                             height: '100%',
