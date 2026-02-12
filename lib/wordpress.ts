@@ -117,10 +117,8 @@ export async function getPosts(): Promise<WordPressPost[]> {
 
     const posts = await res.json();
 
-    // Sort posts: sticky first, then by date
+    // Sort posts by date (newest first), ignoring sticky status
     return posts.sort((a: WordPressPost, b: WordPressPost) => {
-      if (a.sticky && !b.sticky) return -1;
-      if (!a.sticky && b.sticky) return 1;
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
   } catch (error) {
