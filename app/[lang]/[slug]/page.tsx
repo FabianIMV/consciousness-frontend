@@ -4,9 +4,10 @@
  */
 
 import Link from 'next/link';
-import { getPageBySlug, getFeaturedImage, processContent, decodeHtmlEntities } from '@/lib/wordpress';
+import { getFeaturedImage, processContent, decodeHtmlEntities } from '@/lib/wordpress';
 import { translateContent } from '@/lib/i18n';
 import { notFound } from 'next/navigation';
+import { HARDCODED_POSTS } from '@/lib/hardcoded-posts';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export default async function ArticlePage({
   params: { slug: string; lang: string };
 }) {
   const { lang, slug } = params;
-  const page = await getPageBySlug(slug);
+  const page = HARDCODED_POSTS.find(post => post.slug === slug);
 
   if (!page) {
     notFound();
