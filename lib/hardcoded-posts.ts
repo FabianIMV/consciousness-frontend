@@ -3,26 +3,9 @@
  * Used as fallback when WordPress is unavailable
  */
 
-export interface HardcodedPost {
-  id: number;
-  date: string;
-  slug: string;
-  title: {
-    rendered: string;
-  };
-  content: {
-    rendered: string;
-  };
-  featured_media: number;
-  _embedded?: {
-    'wp:featuredmedia'?: Array<{
-      source_url: string;
-      alt_text: string;
-    }>;
-  };
-}
+import { WordPressPage } from '@/lib/wordpress';
 
-export const HARDCODED_POSTS: HardcodedPost[] = [
+export const HARDCODED_POSTS: WordPressPage[] = [
   {
     id: 1,
     date: '2026-01-15T10:30:00',
