@@ -6,11 +6,15 @@
 import Link from 'next/link';
 import { getPosts, getFeaturedImage, stripHtml, truncate, decodeHtmlEntities } from '@/lib/wordpress';
 import { translateContent } from '@/lib/i18n';
+import { HARDCODED_POSTS } from '@/lib/hardcoded-posts';
 
 export const revalidate = 60;
 
 export default async function Home({ params }: { params: { lang: string } }) {
   const { lang } = params;
+
+  // Use hardcoded posts
+  const articles = HARDCODED_POSTS;
   const posts = await getPosts();
   const articles = posts;
 
