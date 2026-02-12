@@ -6,15 +6,15 @@
 import Link from 'next/link';
 import { getPages, getFeaturedImage, stripHtml, truncate, decodeHtmlEntities } from '@/lib/wordpress';
 import { translateContent } from '@/lib/i18n';
+import { HARDCODED_POSTS } from '@/lib/hardcoded-posts';
 
 export const revalidate = 60;
 
 export default async function Home({ params }: { params: { lang: string } }) {
   const { lang } = params;
-  const pages = await getPages();
-  const articles = pages.filter(page =>
-    !['about', 'contact', 'papers', 'home'].includes(page.slug)
-  );
+
+  // Use hardcoded posts
+  const articles = HARDCODED_POSTS;
 
   // Featured article (first one)
   const featured = articles[0];
