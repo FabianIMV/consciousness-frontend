@@ -4,21 +4,24 @@
  */
 
 import Link from 'next/link';
-import { getPages, getFeaturedImage, stripHtml, truncate, decodeHtmlEntities } from '@/lib/wordpress';
+import { getPosts, getFeaturedImage, stripHtml, truncate, decodeHtmlEntities } from '@/lib/wordpress';
 import { translateContent } from '@/lib/i18n';
 
 export const revalidate = 60;
 
 export default async function Home({ params }: { params: { lang: string } }) {
   const { lang } = params;
-  const pages = await getPages();
-  const articles = pages.filter(page =>
-    !['about', 'contact', 'papers', 'home'].includes(page.slug)
-  );
+  const posts = await getPosts();
+  const articles = posts;
 
-  // Featured article (first one)
+  // Featured article (first one, or first sticky post if available)
   const featured = articles[0];
-  const otherArticlesRaw = articles.slice(1);
+
+  // Ensure "The Soul Crisis" is at the beginning of recent research
+  const soulCrisisPost = articles.find(a => a.slug === 'the-soul-crisis');
+  const otherArticlesRaw = soulCrisisPost
+    ? [soulCrisisPost, ...articles.slice(1).filter(a => a.slug !== 'the-soul-crisis')]
+    : articles.slice(1);
 
   // Pre-translate content to avoid await in map callback
   const [translatedArticles, recentResearchLabel, sidebarQuickLinksLabel, sidebarPapersLabel, sidebarLearnMoreLabel, sidebarAboutTitle, sidebarAboutText] = await Promise.all([
