@@ -4,19 +4,17 @@
  */
 
 import Link from 'next/link';
-import { getPages, getFeaturedImage, stripHtml, truncate, decodeHtmlEntities } from '@/lib/wordpress';
+import { getPosts, getFeaturedImage, stripHtml, truncate, decodeHtmlEntities } from '@/lib/wordpress';
 import { translateContent } from '@/lib/i18n';
 
 export const revalidate = 60;
 
 export default async function Home({ params }: { params: { lang: string } }) {
   const { lang } = params;
-  const pages = await getPages();
-  const articles = pages.filter(page =>
-    !['about', 'contact', 'papers', 'home'].includes(page.slug)
-  );
+  const posts = await getPosts();
+  const articles = posts;
 
-  // Featured article (first one)
+  // Featured article (first one, or first sticky post if available)
   const featured = articles[0];
   const otherArticlesRaw = articles.slice(1);
 
