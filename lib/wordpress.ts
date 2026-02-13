@@ -12,6 +12,7 @@ export interface WordPressPost {
   modified: string;
   slug: string;
   status: string;
+  sticky?: boolean;
   title: {
     rendered: string;
   };
@@ -114,7 +115,12 @@ export async function getPosts(): Promise<WordPressPost[]> {
       throw new Error(`Failed to fetch posts: ${res.status}`);
     }
 
-    return res.json();
+    const posts = await res.json();
+
+    // Sort posts by date (newest first), ignoring sticky status
+    return posts.sort((a: WordPressPost, b: WordPressPost) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
   } catch (error) {
     console.error('Error fetching posts:', error);
     return [];
