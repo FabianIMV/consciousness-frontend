@@ -13,9 +13,23 @@
         </header>
 
         {% if posts %}
+            {# Separate sticky and regular posts #}
+            {% set sticky_posts = [] %}
+            {% set regular_posts = [] %}
+            {% for post in posts %}
+                {% if post.sticky %}
+                    {% set sticky_posts = sticky_posts|merge([post]) %}
+                {% else %}
+                    {% set regular_posts = regular_posts|merge([post]) %}
+                {% endif %}
+            {% endfor %}
+
+            {# Combine: sticky first, then regular #}
+            {% set all_posts = sticky_posts|merge(regular_posts) %}
+
             <div class="articles-grid">
-                {% for post in posts %}
-                    <article class="article-card">
+                {% for post in all_posts %}
+                    <article class="article-card{% if post.sticky %} featured-article{% endif %}">
 
                         {# Featured Image #}
                         {% if post.thumbnail %}
