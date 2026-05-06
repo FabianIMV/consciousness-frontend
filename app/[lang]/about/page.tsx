@@ -58,15 +58,26 @@ export default async function About({ params }: { params: { lang: string } }) {
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'AboutPage',
-    name: 'About Consciousness Networks',
-    description: 'Consciousness Networks is an independent research initiative documenting inquiry at the intersection of quantum mechanics, neuroscience, and artificial intelligence.',
-    url: `https://consciousnessnetworks.com/${lang}/about`,
-    publisher: {
-      '@type': 'Organization',
-      name: 'Consciousness Networks',
-      url: 'https://consciousnessnetworks.com',
-    },
+    '@graph': [
+      {
+        '@type': 'AboutPage',
+        name: 'About Consciousness Networks',
+        description: 'Consciousness Networks is an independent research initiative documenting inquiry at the intersection of quantum mechanics, neuroscience, and artificial intelligence.',
+        url: `https://consciousnessnetworks.com/${lang}/about`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'Consciousness Networks',
+          url: 'https://consciousnessnetworks.com',
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Research', item: `https://consciousnessnetworks.com/${lang}` },
+          { '@type': 'ListItem', position: 2, name: 'About', item: `https://consciousnessnetworks.com/${lang}/about` },
+        ],
+      },
+    ],
   };
 
   return (
