@@ -1,8 +1,3 @@
-/**
- * Homepage - Consciousness Networks
- * Medium-inspired layout with sidebars
- */
-
 import Link from 'next/link';
 import { getPosts, getFeaturedImage, stripHtml, truncate, decodeHtmlEntities } from '@/lib/wordpress';
 import { translateContent } from '@/lib/i18n';
@@ -39,8 +34,39 @@ export default async function Home({ params }: { params: { lang: string } }) {
     translateContent('Exploring the quantum nature of consciousness through interdisciplinary research.', lang)
   ]);
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': 'https://consciousnessnetworks.com/#website',
+        url: 'https://consciousnessnetworks.com',
+        name: 'Consciousness Networks',
+        description: 'Research at the intersection of quantum mechanics, neuroscience, and artificial intelligence',
+        inLanguage: ['en', 'es'],
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: 'https://consciousnessnetworks.com/?s={search_term_string}',
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'Organization',
+        '@id': 'https://consciousnessnetworks.com/#organization',
+        name: 'Consciousness Networks',
+        url: 'https://consciousnessnetworks.com',
+        description: 'Independent research organization exploring quantum consciousness, AI emergence, and neuroscience',
+      },
+    ],
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* Fixed Header */}
       <header className="header-glass" style={{
         position: 'fixed',
@@ -88,26 +114,10 @@ export default async function Home({ params }: { params: { lang: string } }) {
           </nav>
 
           <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
-            <Link href="/" style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-semibold)',
-              color: 'var(--primary-purple)',
-            }}>Home</Link>
-            <Link href="/papers" style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>Papers</Link>
-            <Link href="/about" style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>About</Link>
-            <Link href="/contact" style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>Contact</Link>
+            <Link href={`/${lang}`} style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--primary-purple)' }}>{await translateContent('Home', lang)}</Link>
+            <Link href={`/${lang}/papers`} style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>{await translateContent('Papers', lang)}</Link>
+            <Link href={`/${lang}/about`} style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>{await translateContent('About', lang)}</Link>
+            <Link href={`/${lang}/contact`} style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>{await translateContent('Contact', lang)}</Link>
           </nav>
         </div>
       </header>
@@ -141,30 +151,29 @@ export default async function Home({ params }: { params: { lang: string } }) {
               }}>{sidebarQuickLinksLabel}</h3>
 
               <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-                <Link href="/" style={{
+                <Link href={`/${lang}`} style={{
                   fontSize: 'var(--text-sm)',
                   color: 'var(--primary-purple)',
                   padding: 'var(--spacing-2) 0',
                   borderLeft: '2px solid var(--primary-purple)',
                   paddingLeft: 'var(--spacing-3)',
                   fontWeight: 'var(--font-semibold)',
-                }}>Latest Research</Link>
-                <Link href="/papers" style={{
+                }}>{sidebarQuickLinksLabel === 'Quick Links' ? 'Latest Research' : sidebarQuickLinksLabel}</Link>
+                <Link href={`/${lang}/papers`} style={{
                   fontSize: 'var(--text-sm)',
                   color: 'var(--text-secondary)',
                   padding: 'var(--spacing-2) 0',
                   borderLeft: '2px solid transparent',
                   paddingLeft: 'var(--spacing-3)',
-                  transition: 'all var(--transition-base)',
-                }}>Must-Read Papers</Link>
-                <Link href="/about" style={{
+                }}>{sidebarPapersLabel}</Link>
+                <Link href={`/${lang}/about`} style={{
                   fontSize: 'var(--text-sm)',
                   color: 'var(--text-secondary)',
                   padding: 'var(--spacing-2) 0',
                   borderLeft: '2px solid transparent',
                   paddingLeft: 'var(--spacing-3)',
-                }}>About Us</Link>
-                <Link href="/contact" style={{
+                }}>{sidebarAboutTitle}</Link>
+                <Link href={`/${lang}/contact`} style={{
                   fontSize: 'var(--text-sm)',
                   color: 'var(--text-secondary)',
                   padding: 'var(--spacing-2) 0',
@@ -179,28 +188,37 @@ export default async function Home({ params }: { params: { lang: string } }) {
           <main>
             {/* Hero Section */}
             <section style={{
-              marginBottom: 'var(--spacing-12)',
+              marginBottom: 'var(--spacing-10)',
               padding: 'var(--spacing-8) 0',
+              borderBottom: '1px solid var(--border-light)',
             }}>
-              <div className="badge" style={{ marginBottom: 'var(--spacing-4)' }}>
-                {await translateContent('Quantum Consciousness Research', lang)}
-              </div>
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 'var(--font-semibold)',
+                color: 'var(--primary-purple)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                marginBottom: 'var(--spacing-4)',
+              }}>
+                {await translateContent('Independent Research Journal', lang)}
+              </p>
 
-              <h1 className="gradient-text" style={{
+              <h1 style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: 'var(--text-5xl)',
+                fontSize: 'clamp(2rem, 4vw, var(--text-5xl))',
                 fontWeight: 'var(--font-black)',
                 lineHeight: 'var(--leading-tight)',
+                color: 'var(--text-primary)',
                 marginBottom: 'var(--spacing-4)',
               }}>
                 {await translateContent('Exploring the Architecture of Consciousness', lang)}
               </h1>
 
-              <p className="lead" style={{
-                fontSize: 'var(--text-xl)',
+              <p style={{
+                fontSize: 'var(--text-lg)',
                 color: 'var(--text-secondary)',
                 lineHeight: 'var(--leading-relaxed)',
-                marginBottom: 'var(--spacing-6)',
+                maxWidth: '600px',
               }}>
                 {await translateContent('Research at the intersection of quantum mechanics, neuroscience, and artificial intelligence', lang)}
               </p>
@@ -235,9 +253,9 @@ export default async function Home({ params }: { params: { lang: string } }) {
                   )}
 
                   <div style={{ padding: 'var(--spacing-8)' }}>
-                    <div className="badge badge-quantum" style={{ marginBottom: 'var(--spacing-3)' }}>
-                      {await translateContent('Featured', lang)}
-                    </div>
+                    <time className="metadata" style={{ display: 'block', marginBottom: 'var(--spacing-3)' }}>
+                      {new Date(featured.date).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </time>
 
                     <h2 style={{
                       fontFamily: 'var(--font-display)',
@@ -254,9 +272,14 @@ export default async function Home({ params }: { params: { lang: string } }) {
                       fontSize: 'var(--text-lg)',
                       lineHeight: 'var(--leading-relaxed)',
                       color: 'var(--text-secondary)',
+                      marginBottom: 'var(--spacing-4)',
                     }}>
                       {await translateContent(truncate(stripHtml(featured.content.rendered), 200), lang)}
                     </p>
+
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-purple)', fontWeight: 'var(--font-semibold)' }}>
+                      {await translateContent('Read article →', lang)}
+                    </span>
                   </div>
                 </Link>
               </section>
@@ -318,12 +341,17 @@ export default async function Home({ params }: { params: { lang: string } }) {
                     )}
 
                     <div>
+                      <time className="metadata" style={{ display: 'block', marginBottom: 'var(--spacing-2)' }}>
+                        {new Date(article.date).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </time>
+
                       <h3 style={{
                         fontFamily: 'var(--font-display)',
                         fontSize: 'var(--text-xl)',
                         fontWeight: 'var(--font-bold)',
                         color: 'var(--text-primary)',
                         marginBottom: 'var(--spacing-2)',
+                        lineHeight: 'var(--leading-snug)',
                       }}>
                         {article.translatedTitle}
                       </h3>
@@ -370,7 +398,7 @@ export default async function Home({ params }: { params: { lang: string } }) {
                 color: 'var(--text-primary)',
                 marginBottom: 'var(--spacing-4)',
               }}>
-                Must-Read Papers
+                {sidebarPapersLabel}
               </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
@@ -413,7 +441,7 @@ export default async function Home({ params }: { params: { lang: string } }) {
                 color: 'var(--text-primary)',
                 marginBottom: 'var(--spacing-3)',
               }}>
-                About This Research
+                {sidebarAboutTitle}
               </h3>
 
               <p style={{
@@ -422,16 +450,16 @@ export default async function Home({ params }: { params: { lang: string } }) {
                 lineHeight: 'var(--leading-relaxed)',
                 marginBottom: 'var(--spacing-4)',
               }}>
-                Exploring the quantum nature of consciousness through interdisciplinary research.
+                {sidebarAboutText}
               </p>
 
-              <Link href="/about" className="btn btn-secondary" style={{
+              <Link href={`/${lang}/about`} className="btn btn-secondary" style={{
                 width: '100%',
                 justifyContent: 'center',
                 fontSize: 'var(--text-sm)',
                 padding: 'var(--spacing-3) var(--spacing-4)',
               }}>
-                Learn More
+                {sidebarLearnMoreLabel}
               </Link>
             </div>
           </aside>
