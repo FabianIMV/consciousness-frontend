@@ -58,15 +58,26 @@ export default async function Papers({ params }: { params: { lang: string } }) {
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
-    name: titleRaw,
-    description: 'A curated reading list of foundational research at the intersection of quantum mechanics, neuroscience, and consciousness science.',
-    url: `https://consciousnessnetworks.com/${lang}/papers`,
-    publisher: {
-      '@type': 'Organization',
-      name: 'Consciousness Networks',
-      url: 'https://consciousnessnetworks.com',
-    },
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        name: titleRaw,
+        description: 'A curated reading list of foundational research at the intersection of quantum mechanics, neuroscience, and consciousness science.',
+        url: `https://consciousnessnetworks.com/${lang}/papers`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'Consciousness Networks',
+          url: 'https://consciousnessnetworks.com',
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Research', item: `https://consciousnessnetworks.com/${lang}` },
+          { '@type': 'ListItem', position: 2, name: 'Papers', item: `https://consciousnessnetworks.com/${lang}/papers` },
+        ],
+      },
+    ],
   };
 
   return (
