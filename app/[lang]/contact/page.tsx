@@ -65,14 +65,25 @@ export default async function Contact({ params }: { params: { lang: string } }) 
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'ContactPage',
-    name: 'Contact Consciousness Networks',
-    url: `https://consciousnessnetworks.com/${lang}/contact`,
-    publisher: {
-      '@type': 'Organization',
-      name: 'Consciousness Networks',
-      url: 'https://consciousnessnetworks.com',
-    },
+    '@graph': [
+      {
+        '@type': 'ContactPage',
+        name: 'Contact Consciousness Networks',
+        url: `https://consciousnessnetworks.com/${lang}/contact`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'Consciousness Networks',
+          url: 'https://consciousnessnetworks.com',
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Research', item: `https://consciousnessnetworks.com/${lang}` },
+          { '@type': 'ListItem', position: 2, name: 'Contact', item: `https://consciousnessnetworks.com/${lang}/contact` },
+        ],
+      },
+    ],
   };
 
   return (
