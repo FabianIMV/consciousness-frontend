@@ -184,14 +184,12 @@ export default async function Contact({ params }: { params: { lang: string } }) 
                 borderTop: '1px solid var(--border-light)',
               }}>
                 <h3 style={{
-                  color: 'var(--text-primary)',
-                  fontSize: 'var(--text-base)',
+                  color: 'var(--text-tertiary)',
+                  fontSize: 'var(--text-xs)',
                   fontWeight: 'var(--font-semibold)',
                   marginBottom: 'var(--spacing-6)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--text-tertiary)',
                 }}>{collaborationTitle}</h3>
 
                 <div style={{
