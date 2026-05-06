@@ -101,31 +101,43 @@ export default async function ArticlePage({
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: titleRaw,
-    description: truncate(stripHtml(page.content.rendered), 160),
-    datePublished: page.date,
-    dateModified: page.modified || page.date,
-    author: {
-      '@type': 'Organization',
-      name: 'Consciousness Networks',
-      url: 'https://consciousnessnetworks.com',
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: 'Consciousness Networks',
-      url: 'https://consciousnessnetworks.com',
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': `https://consciousnessnetworks.com/${lang}/${slug}`,
-    },
-    ...(featuredImage && {
-      image: {
-        '@type': 'ImageObject',
-        url: `https://consciousnessnetworks.com${featuredImage}`,
+    '@graph': [
+      {
+        '@type': 'Article',
+        '@id': `https://consciousnessnetworks.com/${lang}/${slug}#article`,
+        headline: titleRaw,
+        description: truncate(stripHtml(page.content.rendered), 160),
+        datePublished: page.date,
+        dateModified: page.modified || page.date,
+        author: {
+          '@type': 'Organization',
+          name: 'Consciousness Networks',
+          url: 'https://consciousnessnetworks.com',
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'Consciousness Networks',
+          url: 'https://consciousnessnetworks.com',
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `https://consciousnessnetworks.com/${lang}/${slug}`,
+        },
+        ...(featuredImage && {
+          image: {
+            '@type': 'ImageObject',
+            url: `https://consciousnessnetworks.com${featuredImage}`,
+          },
+        }),
       },
-    }),
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Research', item: `https://consciousnessnetworks.com/${lang}` },
+          { '@type': 'ListItem', position: 2, name: titleRaw, item: `https://consciousnessnetworks.com/${lang}/${slug}` },
+        ],
+      },
+    ],
   };
 
   return (
