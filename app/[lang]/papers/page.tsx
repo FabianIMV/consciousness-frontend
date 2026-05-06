@@ -40,6 +40,7 @@ export default async function Papers({ params }: { params: { lang: string } }) {
     title,
     content,
     readingListLabel,
+    heroSubtitle,
     researchLabel,
     papersLabel,
     aboutLabel,
@@ -49,6 +50,7 @@ export default async function Papers({ params }: { params: { lang: string } }) {
     translateContent(titleRaw, lang),
     translateContent(contentRaw, lang),
     translateContent('Reading List', lang),
+    translateContent('Foundational texts on quantum mechanics, neuroscience, and consciousness science — curated for researchers and curious minds.', lang),
     translateContent('Research', lang),
     translateContent('Papers', lang),
     translateContent('About', lang),
@@ -152,9 +154,18 @@ export default async function Papers({ params }: { params: { lang: string } }) {
                 fontWeight: 'var(--font-black)',
                 color: 'var(--text-primary)',
                 lineHeight: 'var(--leading-tight)',
+                marginBottom: 'var(--spacing-4)',
               }}>
                 {title}
               </h1>
+              <p style={{
+                fontSize: 'var(--text-lg)',
+                color: 'var(--text-secondary)',
+                lineHeight: 'var(--leading-relaxed)',
+                maxWidth: '600px',
+              }}>
+                {heroSubtitle}
+              </p>
             </div>
           </div>
         </section>
