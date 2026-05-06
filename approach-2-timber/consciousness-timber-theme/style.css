@@ -109,6 +109,42 @@ article ul, article ol {
   margin-bottom: 15px;
 }
 
+/* Featured Articles */
+.featured-article {
+  background: linear-gradient(135deg, rgba(155, 89, 182, 0.1) 0%, rgba(52, 152, 219, 0.1) 100%) !important;
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.2) !important;
+  position: relative;
+  order: -1;
+}
+
+.featured-article::before {
+  content: '★ FEATURED';
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+}
+
+/* Article Grid - support for featured sorting */
+.articles-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.article-card {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Footer */
 .site-footer {
   background: var(--primary-color);

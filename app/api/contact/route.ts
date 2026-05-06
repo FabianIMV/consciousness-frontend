@@ -1,69 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
+
+const RECIPIENT = process.env.CONTACT_EMAIL || 'contact@consciousnessnetworks.com';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, email, subject, message } = body;
 
-    // Validate required fields
     if (!name || !email || !subject || !message) {
-      return NextResponse.json(
-        { error: 'All fields are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    // Log the contact form submission
-    console.log('Contact form submission:', {
-      name,
-      email,
-      subject,
-      message,
-      timestamp: new Date().toISOString(),
+    if (!process.env.RESEND_API_KEY) {
+      console.error('RESEND_API_KEY not configured');
+      return NextResponse.json({ error: 'Email service not configured' }, { status: 500 });
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    const { error } = await resend.emails.send({
+      from: 'Consciousness Networks <onboarding@resend.dev>',
+      to: [RECIPIENT],
+      reply_to: email,
+      subject: `[Contact] ${subject} — ${name}`,
+      html: `
+        <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+          <h2 style="color: #1F2937; font-size: 20px; margin-bottom: 16px;">New contact form submission</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="padding: 8px 0; color: #6B7280; width: 100px;">Name</td><td style="padding: 8px 0; color: #1F2937;">${name}</td></tr>
+            <tr><td style="padding: 8px 0; color: #6B7280;">Email</td><td style="padding: 8px 0; color: #1F2937;"><a href="mailto:${email}">${email}</a></td></tr>
+            <tr><td style="padding: 8px 0; color: #6B7280;">Topic</td><td style="padding: 8px 0; color: #1F2937;">${subject}</td></tr>
+          </table>
+          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;" />
+          <p style="color: #4B5563; line-height: 1.6; white-space: pre-wrap;">${message}</p>
+        </div>
+      `,
     });
 
-    // TODO: Here you can integrate with email services like:
-    // - SendGrid
-    // - Resend
-    // - AWS SES
-    // - Nodemailer
-    //
-    // Example with SendGrid:
-    // await sendEmail({
-    //   to: 'contact@consciousnessnetworks.com',
-    //   from: email,
-    //   subject: `Contact Form: ${subject}`,
-    //   html: `
-    //     <h2>New Contact Form Submission</h2>
-    //     <p><strong>Name:</strong> ${name}</p>
-    //     <p><strong>Email:</strong> ${email}</p>
-    //     <p><strong>Subject:</strong> ${subject}</p>
-    //     <p><strong>Message:</strong></p>
-    //     <p>${message}</p>
-    //   `
-    // });
+    if (error) {
+      console.error('Resend error:', error);
+      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
+    }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Thank you for your message. We will get back to you soon!',
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('Error processing contact form:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (err) {
+    console.error('Contact route error:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

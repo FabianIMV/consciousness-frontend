@@ -20,97 +20,79 @@ export default function ContactForm() {
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
+      if (!response.ok) throw new Error('Failed to send message');
 
       setStatus('success');
       setFormData({ name: '', email: '', subject: '', message: '' });
-
-      // Reset success message after 5 seconds
       setTimeout(() => setStatus('idle'), 5000);
     } catch (error) {
       setStatus('error');
-      setErrorMessage('Failed to send message. Please try again or email us directly at contact@consciousnessnetworks.com');
+      setErrorMessage('Could not send your message. Please try again or write to contact@consciousnessnetworks.com');
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: 'var(--spacing-3) var(--spacing-4)',
+    border: '1px solid var(--border-medium)',
+    borderRadius: 'var(--border-radius)',
+    fontSize: 'var(--text-base)',
+    background: 'var(--bg-primary)',
+    color: 'var(--text-primary)',
+    outline: 'none',
+    transition: 'border-color var(--transition-base)',
+    fontFamily: 'inherit',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    color: 'var(--text-secondary)',
+    fontWeight: 'var(--font-medium)',
+    marginBottom: 'var(--spacing-2)',
+    fontSize: 'var(--text-sm)',
   };
 
   return (
-    <div style={{
-      background: 'var(--bg-primary)',
-      border: '1px solid var(--border-light)',
-      borderRadius: 'var(--border-radius-lg)',
-      padding: 'var(--spacing-8)',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-    }}>
-      <div style={{
-        textAlign: 'center',
-        marginBottom: 'var(--spacing-8)',
-      }}>
-        <h2 style={{
-          color: 'var(--text-primary)',
-          fontSize: 'var(--text-2xl)',
-          fontWeight: 'var(--font-semibold)',
-          marginBottom: 'var(--spacing-2)',
-        }}>Send a Message</h2>
-        <p style={{
-          color: 'var(--text-tertiary)',
-          fontSize: 'var(--text-sm)',
-        }}>
-          Your thoughts on consciousness, AI, or quantum phenomena
-        </p>
-      </div>
-
+    <div>
       {status === 'success' && (
         <div style={{
-          background: 'rgba(34, 197, 94, 0.1)',
-          border: '1px solid rgba(34, 197, 94, 0.3)',
-          borderRadius: 'var(--border-radius-md)',
+          background: 'rgba(34, 197, 94, 0.08)',
+          border: '1px solid rgba(34, 197, 94, 0.25)',
+          borderRadius: 'var(--border-radius)',
           padding: 'var(--spacing-4)',
           marginBottom: 'var(--spacing-6)',
           color: '#15803d',
+          fontSize: 'var(--text-sm)',
         }}>
-          Thank you for your message! We&apos;ll get back to you soon.
+          Message received — we&apos;ll be in touch soon.
         </div>
       )}
 
       {status === 'error' && (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          borderRadius: 'var(--border-radius-md)',
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.25)',
+          borderRadius: 'var(--border-radius)',
           padding: 'var(--spacing-4)',
           marginBottom: 'var(--spacing-6)',
           color: '#991b1b',
+          fontSize: 'var(--text-sm)',
         }}>
           {errorMessage}
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 'var(--spacing-6)' }}>
-          <label htmlFor="name" style={{
-            display: 'block',
-            color: 'var(--text-primary)',
-            fontWeight: 'var(--font-semibold)',
-            marginBottom: 'var(--spacing-2)',
-            fontSize: 'var(--text-sm)',
-          }}>
-            Name
-          </label>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
+        <div>
+          <label htmlFor="name" style={labelStyle}>Name</label>
           <input
             type="text"
             id="name"
@@ -119,29 +101,12 @@ export default function ContactForm() {
             value={formData.name}
             onChange={handleChange}
             placeholder="Your name"
-            style={{
-              width: '100%',
-              padding: 'var(--spacing-3)',
-              border: '2px solid var(--border-light)',
-              borderRadius: 'var(--border-radius-md)',
-              fontSize: 'var(--text-base)',
-              transition: 'border-color var(--transition-base)',
-              background: 'var(--bg-primary)',
-              color: 'var(--text-primary)',
-            }}
+            style={inputStyle}
           />
         </div>
 
-        <div style={{ marginBottom: 'var(--spacing-6)' }}>
-          <label htmlFor="email" style={{
-            display: 'block',
-            color: 'var(--text-primary)',
-            fontWeight: 'var(--font-semibold)',
-            marginBottom: 'var(--spacing-2)',
-            fontSize: 'var(--text-sm)',
-          }}>
-            Email
-          </label>
+        <div>
+          <label htmlFor="email" style={labelStyle}>Email</label>
           <input
             type="email"
             id="email"
@@ -149,87 +114,41 @@ export default function ContactForm() {
             required
             value={formData.email}
             onChange={handleChange}
-            placeholder="your.email@example.com"
-            style={{
-              width: '100%',
-              padding: 'var(--spacing-3)',
-              border: '2px solid var(--border-light)',
-              borderRadius: 'var(--border-radius-md)',
-              fontSize: 'var(--text-base)',
-              transition: 'border-color var(--transition-base)',
-              background: 'var(--bg-primary)',
-              color: 'var(--text-primary)',
-            }}
+            placeholder="your@email.com"
+            style={inputStyle}
           />
         </div>
 
-        <div style={{ marginBottom: 'var(--spacing-6)' }}>
-          <label htmlFor="subject" style={{
-            display: 'block',
-            color: 'var(--text-primary)',
-            fontWeight: 'var(--font-semibold)',
-            marginBottom: 'var(--spacing-2)',
-            fontSize: 'var(--text-sm)',
-          }}>
-            Subject
-          </label>
+        <div>
+          <label htmlFor="subject" style={labelStyle}>Topic</label>
           <select
             id="subject"
             name="subject"
             required
             value={formData.subject}
             onChange={handleChange}
-            style={{
-              width: '100%',
-              padding: 'var(--spacing-3)',
-              border: '2px solid var(--border-light)',
-              borderRadius: 'var(--border-radius-md)',
-              fontSize: 'var(--text-base)',
-              transition: 'border-color var(--transition-base)',
-              background: 'var(--bg-primary)',
-              color: 'var(--text-primary)',
-            }}
+            style={inputStyle}
           >
-            <option value="">Select a topic...</option>
-            <option value="Research Collaboration">Research Collaboration</option>
-            <option value="AI Consciousness Discussion">AI Consciousness Discussion</option>
-            <option value="Quantum Physics & Consciousness">Quantum Physics &amp; Consciousness</option>
-            <option value="Paper Recommendation">Paper Recommendation</option>
-            <option value="Interdimensional Communication">Interdimensional Communication</option>
-            <option value="General Inquiry">General Inquiry</option>
+            <option value="">Select a topic</option>
+            <option value="Research Collaboration">Research collaboration</option>
+            <option value="Quantum Physics & Consciousness">Quantum physics &amp; consciousness</option>
+            <option value="AI Consciousness">AI and consciousness</option>
+            <option value="Paper Recommendation">Paper recommendation</option>
+            <option value="General Inquiry">General inquiry</option>
           </select>
         </div>
 
-        <div style={{ marginBottom: 'var(--spacing-6)' }}>
-          <label htmlFor="message" style={{
-            display: 'block',
-            color: 'var(--text-primary)',
-            fontWeight: 'var(--font-semibold)',
-            marginBottom: 'var(--spacing-2)',
-            fontSize: 'var(--text-sm)',
-          }}>
-            Message
-          </label>
+        <div>
+          <label htmlFor="message" style={labelStyle}>Message</label>
           <textarea
             id="message"
             name="message"
             required
             value={formData.message}
             onChange={handleChange}
-            placeholder="Share your thoughts, questions, or research insights..."
+            placeholder="Your message..."
             rows={6}
-            style={{
-              width: '100%',
-              padding: 'var(--spacing-3)',
-              border: '2px solid var(--border-light)',
-              borderRadius: 'var(--border-radius-md)',
-              fontSize: 'var(--text-base)',
-              transition: 'border-color var(--transition-base)',
-              resize: 'vertical',
-              background: 'var(--bg-primary)',
-              color: 'var(--text-primary)',
-              fontFamily: 'inherit',
-            }}
+            style={{ ...inputStyle, resize: 'vertical' }}
           />
         </div>
 
@@ -239,17 +158,17 @@ export default function ContactForm() {
           style={{
             background: status === 'sending' ? 'var(--text-tertiary)' : 'linear-gradient(135deg, var(--primary-purple), #764ba2)',
             color: 'white',
-            padding: 'var(--spacing-4) var(--spacing-8)',
+            padding: 'var(--spacing-3) var(--spacing-6)',
             border: 'none',
-            borderRadius: 'var(--border-radius-md)',
-            fontSize: 'var(--text-base)',
+            borderRadius: 'var(--border-radius)',
+            fontSize: 'var(--text-sm)',
             fontWeight: 'var(--font-semibold)',
             cursor: status === 'sending' ? 'not-allowed' : 'pointer',
-            transition: 'all var(--transition-base)',
-            width: '100%',
+            letterSpacing: '0.02em',
+            alignSelf: 'flex-start',
           }}
         >
-          {status === 'sending' ? 'Sending...' : 'Send Message'}
+          {status === 'sending' ? 'Sending…' : 'Send message'}
         </button>
       </form>
     </div>

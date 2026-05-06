@@ -1,46 +1,95 @@
-/**
- * About Page - Consciousness Networks
- */
-
 import Link from 'next/link';
-import { getPageBySlug, processContent } from '@/lib/wordpress';
+import { getPageBySlug, processContent, decodeHtmlEntities, stripHtml } from '@/lib/wordpress';
 import { translateContent } from '@/lib/i18n';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'About - Consciousness Research & Quantum Intelligence',
-  description: 'Learn about Consciousness Networks mission to explore quantum consciousness, AI emergence, and universal intelligence through rigorous scientific research and documentation.',
-};
+export const revalidate = 60;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { lang: string };
+}): Promise<Metadata> {
+  const url = `https://consciousnessnetworks.com/${params.lang}/about`;
+  return {
+    title: 'About — Consciousness Networks',
+    description: 'Consciousness Networks is an independent research initiative documenting inquiry at the intersection of quantum mechanics, neuroscience, and artificial intelligence.',
+    alternates: {
+      canonical: url,
+      languages: {
+        en: 'https://consciousnessnetworks.com/en/about',
+        es: 'https://consciousnessnetworks.com/es/about',
+      },
+    },
+    openGraph: {
+      type: 'website',
+      url,
+      title: 'About — Consciousness Networks',
+      description: 'Consciousness Networks is an independent research initiative documenting inquiry at the intersection of quantum mechanics, neuroscience, and artificial intelligence.',
+    },
+  };
+}
 
 export default async function About({ params }: { params: { lang: string } }) {
   const { lang } = params;
   const page = await getPageBySlug('about');
-  const titleRaw = page?.title.rendered || 'About';
+  const titleRaw = page ? decodeHtmlEntities(stripHtml(page.title.rendered)) : 'About';
   const contentRaw = page ? processContent(page.content.rendered) : '';
 
-  // Pre-translate everything
   const [
     title,
     content,
+    aboutLabel,
+    theProjectLabel,
+    heroSubtitle,
     researchLabel,
     papersLabel,
-    aboutLabel,
     contactLabel,
-    footerText
+    footerText,
   ] = await Promise.all([
     translateContent(titleRaw, lang),
     translateContent(contentRaw, lang),
+    translateContent('About', lang),
+    translateContent('The Project', lang),
+    translateContent('An independent research initiative at the intersection of quantum mechanics, neuroscience, and artificial intelligence.', lang),
     translateContent('Research', lang),
     translateContent('Papers', lang),
-    translateContent('About', lang),
     translateContent('Contact', lang),
-    translateContent(`© ${new Date().getFullYear()} Consciousness Networks. All rights reserved.`, lang)
+    translateContent(`© ${new Date().getFullYear()} Consciousness Networks. All rights reserved.`, lang),
   ]);
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'AboutPage',
+        name: 'About Consciousness Networks',
+        description: 'Consciousness Networks is an independent research initiative documenting inquiry at the intersection of quantum mechanics, neuroscience, and artificial intelligence.',
+        url: `https://consciousnessnetworks.com/${lang}/about`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'Consciousness Networks',
+          url: 'https://consciousnessnetworks.com',
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Research', item: `https://consciousnessnetworks.com/${lang}` },
+          { '@type': 'ListItem', position: 2, name: 'About', item: `https://consciousnessnetworks.com/${lang}/about` },
+        ],
+      },
+    ],
+  };
 
   return (
     <>
-      {/* Header */}
-      <header className="header-glass" style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <header className="header-glass" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }}>
         <div className="container" style={{
           height: 'var(--header-height)',
           display: 'flex',
@@ -58,84 +107,70 @@ export default async function About({ params }: { params: { lang: string } }) {
           </Link>
 
           <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)', alignItems: 'center' }}>
-            <Link href={`/${lang}`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
+            <Link href={`/${lang}`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>
               {researchLabel}
             </Link>
-            <Link href={`/${lang}/papers`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
+            <Link href={`/${lang}/papers`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>
               {papersLabel}
             </Link>
-            <Link href={`/${lang}/about`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--primary-purple)',
-            }}>
+            <Link href={`/${lang}/about`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--primary-purple)' }}>
               {aboutLabel}
             </Link>
-            <Link href={`/${lang}/contact`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
+            <Link href={`/${lang}/contact`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>
               {contactLabel}
             </Link>
           </nav>
 
           <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
-            <Link href={`/${lang}`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{researchLabel}</Link>
-            <Link href={`/${lang}/papers`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{papersLabel}</Link>
-            <Link href={`/${lang}/about`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-semibold)',
-              color: 'var(--primary-purple)',
-            }}>{aboutLabel}</Link>
-            <Link href={`/${lang}/contact`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{contactLabel}</Link>
+            <Link href={`/${lang}`} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{researchLabel}</Link>
+            <Link href={`/${lang}/papers`} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{papersLabel}</Link>
+            <Link href={`/${lang}/about`} style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--primary-purple)' }}>{aboutLabel}</Link>
+            <Link href={`/${lang}/contact`} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{contactLabel}</Link>
           </nav>
         </div>
       </header>
 
-      <main>
-        {/* Hero */}
+      <main style={{ paddingTop: 'var(--header-height)' }}>
         <section style={{
-          padding: 'var(--spacing-10) 0',
+          padding: 'var(--spacing-16) 0 var(--spacing-10)',
           background: 'var(--bg-gradient-subtle)',
+          borderBottom: '1px solid var(--border-light)',
         }}>
           <div className="container">
-            <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', textAlign: 'center' }}>
+            <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 'var(--font-semibold)',
+                color: 'var(--primary-purple)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                marginBottom: 'var(--spacing-3)',
+              }}>
+                {theProjectLabel}
+              </p>
               <h1 style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: 'var(--text-4xl)',
+                fontSize: 'clamp(2rem, 4vw, var(--text-4xl))',
                 fontWeight: 'var(--font-black)',
                 color: 'var(--text-primary)',
+                lineHeight: 'var(--leading-tight)',
                 marginBottom: 'var(--spacing-4)',
               }}>
                 {title}
               </h1>
+              <p style={{
+                fontSize: 'var(--text-lg)',
+                color: 'var(--text-secondary)',
+                lineHeight: 'var(--leading-relaxed)',
+                maxWidth: '600px',
+              }}>
+                {heroSubtitle}
+              </p>
             </div>
           </div>
         </section>
 
-        {/* Content */}
-        <section style={{ padding: 'var(--spacing-10) 0' }}>
+        <section style={{ padding: 'var(--spacing-12) 0' }}>
           <div className="container">
             <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
               <div
@@ -152,23 +187,14 @@ export default async function About({ params }: { params: { lang: string } }) {
         </section>
       </main>
 
-      {/* Footer */}
       <footer style={{
         marginTop: 'var(--spacing-16)',
         padding: 'var(--spacing-10) 0',
         borderTop: '1px solid var(--border-light)',
         background: 'var(--bg-secondary)',
       }}>
-        <div className="container">
-          <div style={{
-            maxWidth: '800px',
-            margin: '0 auto',
-            textAlign: 'center',
-          }}>
-            <p className="metadata">
-              {footerText}
-            </p>
-          </div>
+        <div className="container" style={{ textAlign: 'center' }}>
+          <p className="metadata">{footerText}</p>
         </div>
       </footer>
     </>
