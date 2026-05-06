@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const { error } = await resend.emails.send({
       from: 'Consciousness Networks <onboarding@resend.dev>',
       to: [RECIPIENT],
-      replyTo: email,
+      reply_to: email,
       subject: `[Contact] ${subject} — ${name}`,
       html: `
         <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
