@@ -41,6 +41,7 @@ export default async function About({ params }: { params: { lang: string } }) {
     content,
     aboutLabel,
     theProjectLabel,
+    heroSubtitle,
     researchLabel,
     papersLabel,
     contactLabel,
@@ -50,6 +51,7 @@ export default async function About({ params }: { params: { lang: string } }) {
     translateContent(contentRaw, lang),
     translateContent('About', lang),
     translateContent('The Project', lang),
+    translateContent('An independent research initiative at the intersection of quantum mechanics, neuroscience, and artificial intelligence.', lang),
     translateContent('Research', lang),
     translateContent('Papers', lang),
     translateContent('Contact', lang),
@@ -152,9 +154,18 @@ export default async function About({ params }: { params: { lang: string } }) {
                 fontWeight: 'var(--font-black)',
                 color: 'var(--text-primary)',
                 lineHeight: 'var(--leading-tight)',
+                marginBottom: 'var(--spacing-4)',
               }}>
                 {title}
               </h1>
+              <p style={{
+                fontSize: 'var(--text-lg)',
+                color: 'var(--text-secondary)',
+                lineHeight: 'var(--leading-relaxed)',
+                maxWidth: '600px',
+              }}>
+                {heroSubtitle}
+              </p>
             </div>
           </div>
         </section>
