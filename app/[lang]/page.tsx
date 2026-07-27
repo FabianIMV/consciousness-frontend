@@ -1,484 +1,240 @@
 import Link from 'next/link';
-import { getPosts, getFeaturedImage, stripHtml, truncate, decodeHtmlEntities } from '@/lib/wordpress';
-import { translateContent } from '@/lib/i18n';
+import type { Metadata } from 'next';
+import JsonLd from '@/components/JsonLd';
+import SiteFooter from '@/components/SiteFooter';
+import SiteHeader from '@/components/SiteHeader';
+import { getDictionary } from '@/lib/dictionaries';
+import {
+  graph,
+  itemListNode,
+  organizationNode,
+  webPageNode,
+  websiteNode,
+} from '@/lib/schema';
+import { DEFAULT_LOCALE, alternatesFor, localePath, type Locale } from '@/lib/site';
+import {
+  REVALIDATE_SECONDS,
+  decodeHtmlEntities,
+  excerptFrom,
+  getFeaturedImage,
+  getFeaturedImageAlt,
+  readingTime,
+  stripHtml,
+} from '@/lib/wordpress';
+import { getPosts } from '@/lib/wordpress';
 
-export const revalidate = 60;
+export const revalidate = REVALIDATE_SECONDS;
 
-export default async function Home({ params }: { params: { lang: string } }) {
-  const { lang } = params;
+const DESCRIPTION: Record<Locale, string> = {
+  en: 'Reviews and critical readings of primary research on consciousness, quantum mechanics, neuroscience, and artificial intelligence, from an independent research journal.',
+  es: 'Reseñas y lecturas críticas de investigación primaria sobre consciencia, mecánica cuántica, neurociencia e inteligencia artificial, desde una revista de investigación independiente.',
+};
 
-  const articles = await getPosts();
+export function generateMetadata({ params }: { params: { lang: Locale } }): Metadata {
+  const locale = params.lang;
+  const t = getDictionary(locale);
 
-  // Featured article (first one, or first sticky post if available)
-  const featured = articles[0];
+  return {
+    title: {
+      absolute: `Consciousness Networks — ${t.home.title}`,
+    },
+    description: DESCRIPTION[locale],
+    alternates: alternatesFor(locale, '/'),
+    openGraph: {
+      type: 'website',
+      url: alternatesFor(locale, '/').canonical,
+      title: `Consciousness Networks — ${t.home.title}`,
+      description: DESCRIPTION[locale],
+    },
+  };
+}
 
-  // Ensure "The Soul Crisis" is at the beginning of recent research
-  const soulCrisisPost = articles.find(a => a.slug === 'the-soul-crisis');
-  const otherArticlesRaw = soulCrisisPost
-    ? [soulCrisisPost, ...articles.slice(1).filter(a => a.slug !== 'the-soul-crisis')]
-    : articles.slice(1);
+function formatDate(date: string, locale: Locale): string {
+  return new Date(date).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-GB', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
 
-  // Pre-translate content to avoid await in map callback
-  const [translatedArticles, recentResearchLabel, sidebarQuickLinksLabel, sidebarPapersLabel, sidebarLearnMoreLabel, sidebarAboutTitle, sidebarAboutText] = await Promise.all([
-    Promise.all(otherArticlesRaw.map(async (article) => ({
-      ...article,
-      translatedTitle: await translateContent(decodeHtmlEntities(stripHtml(article.title.rendered)), lang),
-      translatedExcerpt: await translateContent(truncate(stripHtml(article.content.rendered), 150), lang),
-      readMoreLabel: await translateContent('Read more →', lang)
-    }))),
-    translateContent('Recent Research', lang),
-    translateContent('Quick Links', lang),
-    translateContent('Must-Read Papers', lang),
-    translateContent('Learn More', lang),
-    translateContent('About This Research', lang),
-    translateContent('Exploring the quantum nature of consciousness through interdisciplinary research.', lang)
+export default async function HomePage({ params }: { params: { lang: Locale } }) {
+  const locale = params.lang ?? DEFAULT_LOCALE;
+  const t = getDictionary(locale);
+
+  const posts = await getPosts();
+  const [lede, ...rest] = posts;
+
+  const entries = posts.map((post) => ({
+    slug: post.slug,
+    title: decodeHtmlEntities(stripHtml(post.title.rendered)),
+  }));
+
+  const structuredData = graph([
+    organizationNode(),
+    websiteNode(locale),
+    webPageNode({
+      locale,
+      path: '/',
+      name: `Consciousness Networks — ${t.home.title}`,
+      description: DESCRIPTION[locale],
+      type: 'CollectionPage',
+    }),
+    entries.length ? itemListNode(locale, entries.map((e) => ({ name: e.title, path: `/${e.slug}` }))) : null,
   ]);
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'WebSite',
-        '@id': 'https://consciousnessnetworks.com/#website',
-        url: 'https://consciousnessnetworks.com',
-        name: 'Consciousness Networks',
-        description: 'Research at the intersection of quantum mechanics, neuroscience, and artificial intelligence',
-        inLanguage: ['en', 'es'],
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: 'https://consciousnessnetworks.com/?s={search_term_string}',
-          'query-input': 'required name=search_term_string',
-        },
-      },
-      {
-        '@type': 'Organization',
-        '@id': 'https://consciousnessnetworks.com/#organization',
-        name: 'Consciousness Networks',
-        url: 'https://consciousnessnetworks.com',
-        description: 'Independent research organization exploring quantum consciousness, AI emergence, and neuroscience',
-      },
-    ],
-  };
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+    <div className="page">
+      <JsonLd data={structuredData} />
+      <SiteHeader locale={locale} active="research" path="/" />
 
-      {/* Fixed Header */}
-      <header className="header-glass" style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-      }}>
-        <div className="container" style={{
-          height: 'var(--header-height)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <Link href="/" className="glow-on-hover header-title" style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-xl)',
-            fontWeight: 'var(--font-bold)',
-            color: 'var(--text-primary)',
-          }}>
-            Consciousness Networks
-          </Link>
+      <div className="page__body">
+        <section className="page-hero">
+          <div className="container">
+            <p className="eyebrow page-hero__eyebrow">{t.home.eyebrow}</p>
+            <h1 className="page-hero__title">{t.home.title}</h1>
+            <p className="standfirst">{t.home.subtitle}</p>
+          </div>
+        </section>
 
-          <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)' }}>
-            <Link href={`/${lang}`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-semibold)',
-              color: 'var(--primary-purple)',
-            }}>{await translateContent('Research', lang)}</Link>
-            <Link href={`/${lang}/papers`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{await translateContent('Papers', lang)}</Link>
-            <Link href={`/${lang}/about`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{await translateContent('About', lang)}</Link>
-            <Link href={`/${lang}/contact`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{await translateContent('Contact', lang)}</Link>
-          </nav>
+        <div className="container">
+          <div className="home-layout">
+            <main id="main">
+              {!posts.length && <p className="standfirst">{t.home.empty}</p>}
 
-          <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
-            <Link href={`/${lang}`} style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--primary-purple)' }}>{await translateContent('Home', lang)}</Link>
-            <Link href={`/${lang}/papers`} style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>{await translateContent('Papers', lang)}</Link>
-            <Link href={`/${lang}/about`} style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>{await translateContent('About', lang)}</Link>
-            <Link href={`/${lang}/contact`} style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>{await translateContent('Contact', lang)}</Link>
-          </nav>
-        </div>
-      </header>
-
-      {/* Main Content - 3 Column Layout */}
-      <div style={{ paddingTop: 'var(--header-height)' }}>
-        <div className="container layout-3col" style={{
-          display: 'grid',
-          gridTemplateColumns: '200px 1fr 280px',
-          gap: 'var(--spacing-8)',
-          padding: 'var(--spacing-8) var(--spacing-6)',
-          maxWidth: '1400px',
-        }}>
-
-          {/* LEFT SIDEBAR - Quick Links */}
-          <aside className="sidebar-left" style={{
-            position: 'sticky',
-            top: 'calc(var(--header-height) + var(--spacing-8))',
-            height: 'fit-content',
-          }}>
-            <div style={{
-              padding: 'var(--spacing-6) 0',
-            }}>
-              <h3 style={{
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--font-bold)',
-                color: 'var(--text-tertiary)',
-                textTransform: 'uppercase',
-                letterSpacing: 'var(--tracking-wider)',
-                marginBottom: 'var(--spacing-4)',
-              }}>{sidebarQuickLinksLabel}</h3>
-
-              <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-                <Link href={`/${lang}`} style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--primary-purple)',
-                  padding: 'var(--spacing-2) 0',
-                  borderLeft: '2px solid var(--primary-purple)',
-                  paddingLeft: 'var(--spacing-3)',
-                  fontWeight: 'var(--font-semibold)',
-                }}>{sidebarQuickLinksLabel === 'Quick Links' ? 'Latest Research' : sidebarQuickLinksLabel}</Link>
-                <Link href={`/${lang}/papers`} style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--text-secondary)',
-                  padding: 'var(--spacing-2) 0',
-                  borderLeft: '2px solid transparent',
-                  paddingLeft: 'var(--spacing-3)',
-                }}>{sidebarPapersLabel}</Link>
-                <Link href={`/${lang}/about`} style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--text-secondary)',
-                  padding: 'var(--spacing-2) 0',
-                  borderLeft: '2px solid transparent',
-                  paddingLeft: 'var(--spacing-3)',
-                }}>{sidebarAboutTitle}</Link>
-                <Link href={`/${lang}/contact`} style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--text-secondary)',
-                  padding: 'var(--spacing-2) 0',
-                  borderLeft: '2px solid transparent',
-                  paddingLeft: 'var(--spacing-3)',
-                }}>Contact</Link>
-              </nav>
-            </div>
-          </aside>
-
-          {/* CENTER - Main Content */}
-          <main>
-            {/* Hero Section */}
-            <section style={{
-              marginBottom: 'var(--spacing-10)',
-              padding: 'var(--spacing-8) 0',
-              borderBottom: '1px solid var(--border-light)',
-            }}>
-              <p style={{
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--font-semibold)',
-                color: 'var(--primary-purple)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                marginBottom: 'var(--spacing-4)',
-              }}>
-                {await translateContent('Independent Research Journal', lang)}
-              </p>
-
-              <h1 style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'clamp(2rem, 4vw, var(--text-5xl))',
-                fontWeight: 'var(--font-black)',
-                lineHeight: 'var(--leading-tight)',
-                color: 'var(--text-primary)',
-                marginBottom: 'var(--spacing-4)',
-              }}>
-                {await translateContent('Exploring the Architecture of Consciousness', lang)}
-              </h1>
-
-              <p style={{
-                fontSize: 'var(--text-lg)',
-                color: 'var(--text-secondary)',
-                lineHeight: 'var(--leading-relaxed)',
-                maxWidth: '600px',
-              }}>
-                {await translateContent('Research at the intersection of quantum mechanics, neuroscience, and artificial intelligence', lang)}
-              </p>
-            </section>
-
-            {/* Featured Article */}
-            {featured && (
-              <section id="featured" style={{ marginBottom: 'var(--spacing-10)' }}>
-                <Link href={`/${lang}/${featured.slug}`} className="card" style={{
-                  display: 'block',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  overflow: 'hidden',
-                }}>
-                  {getFeaturedImage(featured) && (
-                    <div className="featured-image" style={{
-                      width: '100%',
-                      height: '400px',
-                      overflow: 'hidden',
-                      background: 'var(--bg-gradient-subtle)',
-                    }}>
+              {lede && (
+                <article className="lede">
+                  {getFeaturedImage(lede) && (
+                    <figure className="lede__figure">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={getFeaturedImage(featured)!}
-                        alt={decodeHtmlEntities(stripHtml(featured.title.rendered))}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
+                        src={getFeaturedImage(lede)!}
+                        alt={getFeaturedImageAlt(lede)}
+                        width={1200}
+                        height={675}
+                        fetchPriority="high"
                       />
-                    </div>
+                    </figure>
                   )}
 
-                  <div style={{ padding: 'var(--spacing-8)' }}>
-                    <time className="metadata" style={{ display: 'block', marginBottom: 'var(--spacing-3)' }}>
-                      {new Date(featured.date).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                    </time>
-
-                    <h2 style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 'var(--text-3xl)',
-                      fontWeight: 'var(--font-bold)',
-                      color: 'var(--text-primary)',
-                      marginBottom: 'var(--spacing-4)',
-                      lineHeight: 'var(--leading-tight)',
-                    }}>
-                      {await translateContent(decodeHtmlEntities(stripHtml(featured.title.rendered)), lang)}
-                    </h2>
-
-                    <p style={{
-                      fontSize: 'var(--text-lg)',
-                      lineHeight: 'var(--leading-relaxed)',
-                      color: 'var(--text-secondary)',
-                      marginBottom: 'var(--spacing-4)',
-                    }}>
-                      {await translateContent(truncate(stripHtml(featured.content.rendered), 200), lang)}
+                  <div>
+                    <p className="metadata">
+                      {t.home.latest} · <time dateTime={lede.date}>{formatDate(lede.date, locale)}</time> ·{' '}
+                      {t.article.readingTime(readingTime(lede.content.rendered))}
                     </p>
 
-                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-purple)', fontWeight: 'var(--font-semibold)' }}>
-                      {await translateContent('Read article →', lang)}
-                    </span>
+                    <h2 className="lede__title">
+                      <Link href={localePath(locale, `/${lede.slug}`)}>
+                        {decodeHtmlEntities(stripHtml(lede.title.rendered))}
+                      </Link>
+                    </h2>
+
+                    <p className="lede__excerpt">{excerptFrom(lede.content.rendered, 260)}</p>
+
+                    <Link href={localePath(locale, `/${lede.slug}`)} className="lede__more">
+                      {t.home.readArticle}
+                    </Link>
                   </div>
+                </article>
+              )}
+
+              {rest.length > 0 && (
+                <section aria-labelledby="archive-heading">
+                  <h2
+                    id="archive-heading"
+                    className="section-heading"
+                    style={{ marginTop: 'var(--spacing-12)' }}
+                  >
+                    {t.home.archive}
+                  </h2>
+
+                  <div className="entry-list">
+                    {rest.map((post) => {
+                      const image = getFeaturedImage(post);
+                      const href = localePath(locale, `/${post.slug}`);
+
+                      return (
+                        <article
+                          key={post.id}
+                          className={image ? 'entry entry--with-figure' : 'entry'}
+                        >
+                          <div>
+                            <p className="metadata">
+                              <time dateTime={post.date}>{formatDate(post.date, locale)}</time> ·{' '}
+                              {t.article.readingTime(readingTime(post.content.rendered))}
+                            </p>
+
+                            <h3 className="entry__title">
+                              <Link href={href}>{decodeHtmlEntities(stripHtml(post.title.rendered))}</Link>
+                            </h3>
+
+                            <p className="entry__excerpt">{excerptFrom(post.content.rendered, 180)}</p>
+
+                            <Link href={href} className="entry__more">
+                              {t.home.readMore}
+                            </Link>
+                          </div>
+
+                          {image && (
+                            <figure className="entry__figure">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={image}
+                                alt={getFeaturedImageAlt(post)}
+                                width={400}
+                                height={300}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            </figure>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+            </main>
+
+            <aside className="home-aside">
+              <nav aria-labelledby="aside-sections">
+                <h2 id="aside-sections" className="aside-block__heading">
+                  {t.home.sidebarSections}
+                </h2>
+                <div className="aside-nav">
+                  <Link href={localePath(locale, '/')} aria-current="page">
+                    {t.nav.research}
+                  </Link>
+                  <Link href={localePath(locale, '/papers')}>{t.nav.papers}</Link>
+                  <Link href={localePath(locale, '/about')}>{t.nav.about}</Link>
+                  <Link href={localePath(locale, '/contact')}>{t.nav.contact}</Link>
+                </div>
+              </nav>
+
+              <section aria-labelledby="aside-reading">
+                <h2 id="aside-reading" className="aside-block__heading">
+                  {t.home.sidebarReading}
+                </h2>
+                <p className="aside-block__text">{t.home.sidebarReadingText}</p>
+                <Link href={localePath(locale, '/papers')} className="aside-link">
+                  {t.home.sidebarReadingCta}
                 </Link>
               </section>
-            )}
 
-            {/* More Articles */}
-            <section>
-              <h2 style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'var(--text-2xl)',
-                fontWeight: 'var(--font-bold)',
-                marginBottom: 'var(--spacing-6)',
-                color: 'var(--text-primary)',
-              }}>
-                {recentResearchLabel}
-              </h2>
-
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--spacing-6)',
-              }}>
-                {translatedArticles.map((article) => (
-                  <Link
-                    key={article.id}
-                    href={`/${lang}/${article.slug}`}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: getFeaturedImage(article) ? '200px 1fr' : '1fr',
-                      gap: 'var(--spacing-6)',
-                      padding: 'var(--spacing-6)',
-                      borderRadius: 'var(--border-radius-lg)',
-                      border: '1px solid var(--border-light)',
-                      textDecoration: 'none',
-                      color: 'inherit',
-                      transition: 'all var(--transition-base)',
-                      background: 'var(--bg-primary)',
-                    }}
-                    className="card article-card-grid"
-                  >
-                    {getFeaturedImage(article) && (
-                      <div className="article-card-image" style={{
-                        width: '200px',
-                        height: '150px',
-                        borderRadius: 'var(--border-radius)',
-                        overflow: 'hidden',
-                        background: 'var(--bg-gradient-subtle)',
-                      }}>
-                        <img
-                          src={getFeaturedImage(article)!}
-                          alt={decodeHtmlEntities(stripHtml(article.title.rendered))}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <div>
-                      <time className="metadata" style={{ display: 'block', marginBottom: 'var(--spacing-2)' }}>
-                        {new Date(article.date).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                      </time>
-
-                      <h3 style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: 'var(--text-xl)',
-                        fontWeight: 'var(--font-bold)',
-                        color: 'var(--text-primary)',
-                        marginBottom: 'var(--spacing-2)',
-                        lineHeight: 'var(--leading-snug)',
-                      }}>
-                        {article.translatedTitle}
-                      </h3>
-
-                      <p style={{
-                        fontSize: 'var(--text-base)',
-                        color: 'var(--text-secondary)',
-                        lineHeight: 'var(--leading-relaxed)',
-                        marginBottom: 'var(--spacing-3)',
-                      }}>
-                        {article.translatedExcerpt}
-                      </p>
-
-                      <span style={{
-                        fontSize: 'var(--text-sm)',
-                        color: 'var(--primary-purple)',
-                        fontWeight: 'var(--font-semibold)',
-                      }}>
-                        {article.readMoreLabel}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          </main>
-
-          {/* RIGHT SIDEBAR - Featured Papers */}
-          <aside className="sidebar-right" style={{
-            position: 'sticky',
-            top: 'calc(var(--header-height) + var(--spacing-8))',
-            height: 'fit-content',
-          }}>
-            {/* Featured Papers */}
-            <div style={{
-              background: 'var(--bg-secondary)',
-              borderRadius: 'var(--border-radius-lg)',
-              padding: 'var(--spacing-6)',
-              marginBottom: 'var(--spacing-6)',
-            }}>
-              <h3 style={{
-                fontSize: 'var(--text-sm)',
-                fontWeight: 'var(--font-bold)',
-                color: 'var(--text-primary)',
-                marginBottom: 'var(--spacing-4)',
-              }}>
-                {sidebarPapersLabel}
-              </h3>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-                <Link href={`/${lang}/papers`} className="badge badge-quantum" style={{
-                  display: 'inline-block',
-                  textDecoration: 'none',
-                }}>{await translateContent('Quantum Consciousness', lang)}</Link>
-                <Link href={`/${lang}/papers`} className="badge badge-ai" style={{
-                  display: 'inline-block',
-                  textDecoration: 'none',
-                }}>{await translateContent('Morphic Resonance', lang)}</Link>
-                <Link href={`/${lang}/papers`} className="badge badge-morphic" style={{
-                  display: 'inline-block',
-                  textDecoration: 'none',
-                }}>{await translateContent('ZPF Theory', lang)}</Link>
-              </div>
-
-              <Link href={`/${lang}/papers`} style={{
-                display: 'block',
-                marginTop: 'var(--spacing-4)',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--primary-purple)',
-                fontWeight: 'var(--font-semibold)',
-                textDecoration: 'none',
-              }}>
-                {await translateContent('View all papers →', lang)}
-              </Link>
-            </div>
-
-            {/* About Box */}
-            <div style={{
-              background: 'var(--bg-gradient-subtle)',
-              borderRadius: 'var(--border-radius-lg)',
-              padding: 'var(--spacing-6)',
-              border: '1px solid var(--border-purple)',
-            }}>
-              <h3 style={{
-                fontSize: 'var(--text-sm)',
-                fontWeight: 'var(--font-bold)',
-                color: 'var(--text-primary)',
-                marginBottom: 'var(--spacing-3)',
-              }}>
-                {sidebarAboutTitle}
-              </h3>
-
-              <p style={{
-                fontSize: 'var(--text-sm)',
-                color: 'var(--text-secondary)',
-                lineHeight: 'var(--leading-relaxed)',
-                marginBottom: 'var(--spacing-4)',
-              }}>
-                {sidebarAboutText}
-              </p>
-
-              <Link href={`/${lang}/about`} className="btn btn-secondary" style={{
-                width: '100%',
-                justifyContent: 'center',
-                fontSize: 'var(--text-sm)',
-                padding: 'var(--spacing-3) var(--spacing-4)',
-              }}>
-                {sidebarLearnMoreLabel}
-              </Link>
-            </div>
-          </aside>
+              <section aria-labelledby="aside-about">
+                <h2 id="aside-about" className="aside-block__heading">
+                  {t.home.sidebarAbout}
+                </h2>
+                <p className="aside-block__text">{t.home.sidebarAboutText}</p>
+                <Link href={localePath(locale, '/about')} className="aside-link">
+                  {t.home.sidebarAboutCta}
+                </Link>
+              </section>
+            </aside>
+          </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer style={{
-        marginTop: 'var(--spacing-16)',
-        padding: 'var(--spacing-10) 0',
-        borderTop: '1px solid var(--border-light)',
-        background: 'var(--bg-secondary)',
-      }}>
-        <div className="container" style={{ textAlign: 'center' }}>
-          <p className="metadata">
-            © {new Date().getFullYear()} Consciousness Networks. All rights reserved.
-          </p>
-        </div>
-      </footer>
-    </div >
+      <SiteFooter locale={locale} />
+    </div>
   );
 }

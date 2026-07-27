@@ -2,11 +2,18 @@
   "name": "consciousness-frontend",
   "version": "1.0.0",
   "private": true,
+  "description": "Next.js frontend for consciousnessnetworks.com, backed by a headless WordPress install.",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "mock:wp": "node scripts/mock-wordpress.mjs",
+    "check:site": "node scripts/check-site.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

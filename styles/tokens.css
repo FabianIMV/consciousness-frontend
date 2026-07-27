@@ -1,40 +1,49 @@
 /**
- * Design Tokens - Consciousness Networks
- * Based on analysis of original WordPress site
+ * Design tokens.
+ *
+ * The palette is deliberately narrow: near-black ink on paper, hairline rules,
+ * and a single navy accent reserved for links and active state. Emphasis comes
+ * from typography and whitespace rather than from colour, gradient, or shadow.
  */
 
 :root {
-  /* Colors - Purple/Violet Spiritual Theme */
-  --primary-purple: #6528F7;
-  --primary-violet: #A78BFA;
-  --deep-purple: #5521B5;
-  --accent-pink: #EC4899;
-  --cyan-spiritual: #06B6D4;
-  --gold-cosmic: #F59E0B;
+  color-scheme: light dark;
 
-  /* Neutrals */
-  --text-primary: #1F2937;
-  --text-secondary: #4B5563;
-  --text-tertiary: #9CA3AF;
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F9FAFB;
-  --bg-tertiary: #F3F4F6;
+  /* Ink */
+  --ink-900: #14161a;
+  --ink-700: #33383f;
+  --ink-500: #5a616b;
+  --ink-400: #767d88;
 
-  /* Borders */
-  --border-light: rgba(229, 231, 235, 1);
-  --border-medium: rgba(209, 213, 219, 1);
-  --border-purple: rgba(101, 40, 247, 0.15);
+  /* Paper */
+  --paper: #ffffff;
+  --paper-raised: #f7f7f5;
+  --paper-sunken: #f1f1ee;
 
-  /* Gradients */
-  --gradient-cosmic: linear-gradient(135deg, #6528F7, #A78BFA);
-  --gradient-aurora: linear-gradient(135deg, #EC4899, #A78BFA, #06B6D4);
-  --bg-gradient-subtle: linear-gradient(180deg, rgba(167, 139, 250, 0.03), rgba(255, 255, 255, 0));
+  /* Accent — links, active navigation, meaningful rules */
+  --accent: #263f73;
+  --accent-strong: #16274a;
+  --accent-muted: rgba(38, 63, 115, 0.07);
 
-  /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.18);
+  /* Semantic aliases used by components */
+  --text-primary: var(--ink-900);
+  --text-secondary: var(--ink-500);
+  --text-tertiary: var(--ink-400);
+  --bg-primary: var(--paper);
+  --bg-secondary: var(--paper-raised);
+  --bg-tertiary: var(--paper-sunken);
 
-  /* Spacing (Tailwind-style) */
+  /* Rules */
+  --rule: #e3e3df;
+  --rule-strong: #c8c8c2;
+
+  /* Feedback */
+  --positive: #1f6b45;
+  --positive-bg: #f0f7f3;
+  --negative: #93231f;
+  --negative-bg: #fbf1f0;
+
+  /* Spacing */
   --spacing-1: 0.25rem;
   --spacing-2: 0.5rem;
   --spacing-3: 0.75rem;
@@ -47,12 +56,14 @@
   --spacing-16: 4rem;
   --spacing-20: 5rem;
 
-  /* Typography */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: 'Georgia', 'Times New Roman', serif;
-  --font-display: 'SF Pro Display', -apple-system, system-ui, sans-serif;
+  /* Typefaces — system stacks, so the page needs no third-party font request */
+  --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Source Serif Pro', Georgia,
+    'Times New Roman', serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* Font Sizes */
+  /* Type scale */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
@@ -61,66 +72,55 @@
   --text-2xl: 1.5rem;
   --text-3xl: 1.875rem;
   --text-4xl: 2.25rem;
-  --text-5xl: 3rem;
-  --text-6xl: 3.75rem;
+  --text-5xl: 2.75rem;
 
-  /* Font Weights */
   --font-normal: 400;
   --font-medium: 500;
   --font-semibold: 600;
   --font-bold: 700;
-  --font-black: 900;
 
-  /* Line Heights */
-  --leading-tight: 1.25;
-  --leading-snug: 1.375;
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
   --leading-normal: 1.5;
-  --leading-relaxed: 1.625;
-  --leading-loose: 2;
+  --leading-relaxed: 1.7;
 
-  /* Letter Spacing */
-  --tracking-tight: -0.025em;
+  --tracking-tight: -0.015em;
   --tracking-normal: 0;
-  --tracking-wide: 0.025em;
-  --tracking-wider: 0.05em;
-  --tracking-widest: 0.1em;
-
-  /* Borders & Radius */
-  --border-radius: 8px;
-  --border-radius-lg: 12px;
-  --border-radius-xl: 16px;
-  --card-radius: 16px;
-  --button-radius: 8px;
-
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
-  --card-shadow: 0 4px 12px rgba(101, 40, 247, 0.08);
-  --card-shadow-hover: 0 8px 24px rgba(101, 40, 247, 0.15);
-
-  /* Transitions */
-  --transition-base: 0.2s ease-in-out;
-  --transition-slow: 0.3s ease-in-out;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.09em;
 
   /* Layout */
-  --container-max: 1200px;
-  --content-max: 800px;
-  --header-height: 80px;
+  --header-height: 68px;
+  --container-max: 1180px;
+  --content-max: 44rem;
+
+  --radius-sm: 2px;
+  --radius: 3px;
+
+  --transition: 140ms ease;
 }
 
-/* Dark mode support (optional) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --text-primary: #F9FAFB;
-    --text-secondary: #D1D5DB;
-    --text-tertiary: #9CA3AF;
-    --bg-primary: #111827;
-    --bg-secondary: #1F2937;
-    --bg-tertiary: #374151;
-    --border-light: rgba(75, 85, 99, 0.3);
-    --border-medium: rgba(107, 114, 128, 0.5);
-    --glass-bg: rgba(17, 24, 39, 0.85);
+    --ink-900: #eceded;
+    --ink-700: #c6c9cd;
+    --ink-500: #9aa0a8;
+    --ink-400: #7d838b;
+
+    --paper: #101215;
+    --paper-raised: #171a1e;
+    --paper-sunken: #1d2126;
+
+    --accent: #9db4e0;
+    --accent-strong: #c3d2ee;
+    --accent-muted: rgba(157, 180, 224, 0.1);
+
+    --rule: #282c32;
+    --rule-strong: #3a3f47;
+
+    --positive: #6cc196;
+    --positive-bg: rgba(108, 193, 150, 0.1);
+    --negative: #e08d88;
+    --negative-bg: rgba(224, 141, 136, 0.1);
   }
 }
