@@ -10,7 +10,7 @@
  */
 
 import { sanitizeContent } from '@/lib/sanitize';
-import { looksLikeCss } from '@/lib/text';
+import { looksLikeCss, stripCssArtifacts } from '@/lib/text';
 import { toRelativeUrl } from '@/lib/urls';
 
 export { toRelativeUrl } from '@/lib/urls';
@@ -136,10 +136,12 @@ export function decodeHtmlEntities(text: string): string {
 export function stripHtml(html: string): string {
   if (!html) return '';
   return decodeHtmlEntities(
-    html
-      .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '')
-      .replace(/<!--[\s\S]*?-->/g, '')
-      .replace(/<[^>]*>/g, ' ')
+    stripCssArtifacts(
+      html
+        .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '')
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .replace(/<[^>]*>/g, ' ')
+    )
   )
     .replace(/\s+/g, ' ')
     .trim();
