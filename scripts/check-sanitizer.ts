@@ -8,6 +8,7 @@
  */
 
 import { sanitizeContent } from '@/lib/sanitize';
+import { excerptFrom } from '@/lib/wordpress';
 
 type Check = {
   name: string;
@@ -113,6 +114,21 @@ const checks: Check[] = [
     expect: ['.article-content{margin:0}', '.article-content .container', 'class="wp-document"'],
     reject: ['<head', '\\nbody{'],
   },
+  {
+    // The published shape: a `<style>` tag lost its wrapper, and WordPress's
+    // auto-formatter wrapped the bare declarations in a paragraph — exactly
+    // what appeared as the visible excerpt on the live homepage.
+    name: 'a style tag that lost its wrapper does not render as a paragraph of CSS',
+    input:
+      '<p>.consciousness-post h1 { font-size: 2.4em; margin: 20px 0 15px 0; color: #1a1a2e; line-height: 1.25; font-weight: 700; letter-spacing: -0.02em; } .consciousness-post .subtitle { font-size: 1.25em; color: #667eea; margin-bottom: 35px; font-style: italic; }</p><p>The real opening paragraph.</p>',
+    expect: ['<p>The real opening paragraph.</p>'],
+    reject: ['font-size', 'letter-spacing', '.consciousness-post'],
+  },
+  {
+    name: 'a short paragraph that merely contains a colon is not mistaken for CSS',
+    input: '<p>Consider this: the mind is not a machine.</p>',
+    expect: ['<p>Consider this: the mind is not a machine.</p>'],
+  },
 ];
 
 let failed = 0;
@@ -138,9 +154,32 @@ for (const check of checks) {
   }
 }
 
+const excerptChecks: Array<{ name: string; input: string; expect: string }> = [
+  {
+    name: 'excerptFrom skips an orphaned CSS paragraph and picks the real one',
+    input:
+      '<p>.consciousness-post h1 { font-size: 2.4em; margin: 20px 0; color: #1a1a2e; font-weight: 700; } .consciousness-post .subtitle { font-size: 1.25em; color: #667eea; }</p><p>The real opening paragraph, which belongs in the excerpt.</p>',
+    expect: 'The real opening paragraph, which belongs in the excerpt.',
+  },
+];
+
+for (const check of excerptChecks) {
+  const output = excerptFrom(check.input, 200);
+  if (output !== check.expect) {
+    failed += 1;
+    console.error(`FAIL  ${check.name}`);
+    console.error(`        expected: ${JSON.stringify(check.expect)}`);
+    console.error(`        actual:   ${JSON.stringify(output)}`);
+  } else {
+    console.log(`ok    ${check.name}`);
+  }
+}
+
+const total = checks.length + excerptChecks.length;
+
 if (failed) {
-  console.error(`\n${failed} of ${checks.length} checks failed.`);
+  console.error(`\n${failed} of ${total} checks failed.`);
   process.exit(1);
 }
 
-console.log(`\nAll ${checks.length} checks passed.`);
+console.log(`\nAll ${total} checks passed.`);

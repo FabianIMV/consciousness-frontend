@@ -9,6 +9,7 @@
  * clean fragment — see `sanitizeContent`.
  */
 
+import { looksLikeCss } from '@/lib/text';
 import { toRelativeUrl } from '@/lib/urls';
 
 export { toRelativeUrl } from '@/lib/urls';
@@ -165,7 +166,9 @@ export function excerptFrom(html: string, length = 160): string {
 
   const paragraphs = Array.from(html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
     .map((match) => stripHtml(match[1]))
-    .filter(Boolean);
+    // A `<style>` block that lost its wrapper can survive as a bare-looking
+    // paragraph of CSS (see `sanitizeContent`); it must not become the excerpt.
+    .filter((text) => Boolean(text) && !looksLikeCss(text));
 
   if (!paragraphs.length) return truncate(stripHtml(html), length);
 

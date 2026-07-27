@@ -21,6 +21,7 @@
 import postcss, { type ChildNode, type Root } from 'postcss';
 import sanitizeHtml from 'sanitize-html';
 import { DEFAULT_LOCALE, localePath, type Locale } from '@/lib/site';
+import { looksLikeCss } from '@/lib/text';
 import { toRelativeUrl, isWordPressUrl } from '@/lib/urls';
 
 /** Class applied to the element that receives WordPress HTML. */
@@ -266,6 +267,13 @@ function buildOptions(locale: Locale): sanitizeHtml.IOptions {
         return { tagName, attribs: next };
       },
     },
+    // A `<style>` tag that lost its wrapper leaves bare CSS text behind, which
+    // WordPress's auto-formatter then wraps in an ordinary paragraph or div —
+    // indistinguishable by markup from real prose. It is dropped outright
+    // rather than re-scoped, since the selector it belonged to is gone and
+    // showing it as text would put a wall of CSS declarations on the page.
+    exclusiveFilter: (frame) =>
+      (frame.tag === 'p' || frame.tag === 'div') && looksLikeCss(frame.text),
   };
 }
 
