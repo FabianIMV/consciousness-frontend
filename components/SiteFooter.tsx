@@ -14,7 +14,7 @@ export default function SiteFooter({ locale }: { locale: Locale }) {
   return (
     <footer className="site-footer">
       <div className="container">
-        <div className="site-footer__grid">
+        <nav className="site-footer__grid" aria-label={t.footer.navLabel}>
           <div>
             <p className="site-footer__name">{SITE_NAME}</p>
             <p className="site-footer__text">{t.footer.description}</p>
@@ -42,7 +42,7 @@ export default function SiteFooter({ locale }: { locale: Locale }) {
               </li>
             </ul>
           </div>
-        </div>
+        </nav>
 
         <p className="site-footer__legal">
           © {new Date().getFullYear()} {SITE_NAME}. {t.footer.rights}

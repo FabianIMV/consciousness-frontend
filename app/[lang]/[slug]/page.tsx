@@ -21,8 +21,10 @@ import {
   alternatesFor,
   isLocale,
   localePath,
+  ogImageFor,
   type Locale,
 } from '@/lib/site';
+import { absoluteUrl } from '@/lib/urls';
 import {
   REVALIDATE_SECONDS,
   decodeHtmlEntities,
@@ -34,6 +36,7 @@ import {
   readingTime,
   sanitizeContent,
   stripHtml,
+  timestamps,
   wordCount,
 } from '@/lib/wordpress';
 
@@ -55,11 +58,17 @@ export async function generateMetadata({
 
   if (!post) return { title: 'Page not found', robots: { index: false, follow: true } };
 
-  const title = decodeHtmlEntities(stripHtml(post.title.rendered));
-  const description = excerptFrom(post.content.rendered, 155);
+  // Translated too: leaving these in English gave the Spanish page a title and
+  // description byte-identical to the English one on a different canonical URL.
+  const [title, description] = await Promise.all([
+    translateContent(decodeHtmlEntities(stripHtml(post.title.rendered)), locale),
+    translateContent(excerptFrom(post.content.rendered, 155), locale),
+  ]);
+
   const image = getFeaturedImage(post);
   const path = `/${slug}`;
   const canonical = alternatesFor(locale, path).canonical;
+  const { published, modified } = timestamps(post);
 
   return {
     title,
@@ -70,9 +79,11 @@ export async function generateMetadata({
       url: canonical,
       title,
       description,
-      publishedTime: post.date,
-      modifiedTime: post.modified || post.date,
-      ...(image && { images: [{ url: `${SITE_URL}${image}`, alt: getFeaturedImageAlt(post) }] }),
+      publishedTime: published,
+      modifiedTime: modified,
+      images: image
+        ? [{ url: absoluteUrl(image, SITE_URL), alt: getFeaturedImageAlt(post) }]
+        : ogImageFor(locale),
     },
     twitter: {
       card: 'summary_large_image',
@@ -103,25 +114,24 @@ export default async function ArticlePage({
 
   const path = `/${params.slug}`;
   const titleRaw = decodeHtmlEntities(stripHtml(post.title.rendered));
-  const description = excerptFrom(post.content.rendered, 155);
   const image = getFeaturedImage(post);
-  const published = post.date;
-  const modified = post.modified || post.date;
+  const { published, modified } = timestamps(post);
   const minutes = readingTime(post.content.rendered);
 
-  const [title, body] = await Promise.all([
+  const [title, description, body] = await Promise.all([
     translateContent(titleRaw, locale),
+    translateContent(excerptFrom(post.content.rendered, 155), locale),
     translateContent(sanitizeContent(post.content.rendered, locale), locale),
   ]);
 
   const structuredData = graph([
     organizationNode(),
     websiteNode(locale),
-    webPageNode({ locale, path, name: titleRaw, description }),
+    webPageNode({ locale, path, name: title, description }),
     articleNode({
       locale,
       path,
-      headline: titleRaw,
+      headline: title,
       description,
       datePublished: published,
       dateModified: modified,
@@ -137,10 +147,11 @@ export default async function ArticlePage({
   return (
     <div className="page">
       <JsonLd data={structuredData} />
-      <SiteHeader locale={locale} active="research" path={path} />
+      <SiteHeader locale={locale} active="research" exact={false} path={path} />
 
       <div className="page__body">
-        <article>
+        <main id="main" tabIndex={-1}>
+          <article>
           {image && (
             <figure className="article-figure">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -185,7 +196,7 @@ export default async function ArticlePage({
               </div>
             </header>
 
-            <div id="main" className="article-content" dangerouslySetInnerHTML={{ __html: body }} />
+            <div className="article-content" dangerouslySetInnerHTML={{ __html: body }} />
           </div>
 
           <section className="article-outro">
@@ -197,7 +208,8 @@ export default async function ArticlePage({
               </Link>
             </div>
           </section>
-        </article>
+          </article>
+        </main>
       </div>
 
       <SiteFooter locale={locale} />

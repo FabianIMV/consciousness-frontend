@@ -19,13 +19,23 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/** Percent-encodes a mailto target, then escapes it for the attribute context. */
+function mailtoHref(email: string): string {
+  try {
+    return escapeHtml(encodeURI(email));
+  } catch {
+    // encodeURI throws on a lone surrogate, which the address pattern permits.
+    return escapeHtml(email);
+  }
+}
+
 /** Keeps header-injection sequences out of the subject line. */
 function singleLine(value: string): string {
   return value.replace(/[\r\n]+/g, ' ').trim();
 }
 
 export async function POST(request: NextRequest) {
-  let payload: Record<string, unknown>;
+  let payload: unknown;
 
   try {
     payload = await request.json();
@@ -33,11 +43,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Malformed request body' }, { status: 400 });
   }
 
+  // `null` is valid JSON and would otherwise be dereferenced below.
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+    return NextResponse.json({ error: 'Malformed request body' }, { status: 400 });
+  }
+
+  const input = payload as Record<string, unknown>;
+
   const fields = {
-    name: typeof payload.name === 'string' ? payload.name.trim() : '',
-    email: typeof payload.email === 'string' ? payload.email.trim() : '',
-    subject: typeof payload.subject === 'string' ? payload.subject.trim() : '',
-    message: typeof payload.message === 'string' ? payload.message.trim() : '',
+    name: typeof input.name === 'string' ? input.name.trim() : '',
+    email: typeof input.email === 'string' ? input.email.trim() : '',
+    subject: typeof input.subject === 'string' ? input.subject.trim() : '',
+    message: typeof input.message === 'string' ? input.message.trim() : '',
   };
 
   const missing = Object.entries(fields).filter(([, value]) => !value);
@@ -81,7 +98,7 @@ export async function POST(request: NextRequest) {
           <h1 style="font-size: 18px; margin: 0 0 20px;">New contact form submission</h1>
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr><td style="padding: 6px 0; color: #5a616b; width: 88px;">Name</td><td style="padding: 6px 0;">${escapeHtml(fields.name)}</td></tr>
-            <tr><td style="padding: 6px 0; color: #5a616b;">Email</td><td style="padding: 6px 0;"><a href="mailto:${encodeURI(fields.email)}">${escapeHtml(fields.email)}</a></td></tr>
+            <tr><td style="padding: 6px 0; color: #5a616b;">Email</td><td style="padding: 6px 0;"><a href="mailto:${mailtoHref(fields.email)}">${escapeHtml(fields.email)}</a></td></tr>
             <tr><td style="padding: 6px 0; color: #5a616b;">Topic</td><td style="padding: 6px 0;">${escapeHtml(fields.subject)}</td></tr>
           </table>
           <hr style="border: none; border-top: 1px solid #e3e3df; margin: 20px 0;" />

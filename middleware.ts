@@ -22,9 +22,12 @@ const METADATA_ROUTE = /\/(opengraph-image|twitter-image|icon|apple-icon)(\/|$)/
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (METADATA_ROUTE.test(pathname)) return NextResponse.next();
-
   if (pathname === `/${DEFAULT_LOCALE}` || pathname.startsWith(`/${DEFAULT_LOCALE}/`)) {
+    // Serve the metadata image directly instead of redirecting: this is the URL
+    // Next puts in og:image, and unfurlers that do not follow redirects would
+    // otherwise render the share card without an image.
+    if (METADATA_ROUTE.test(pathname)) return NextResponse.next();
+
     const url = request.nextUrl.clone();
     url.pathname = pathname.slice(`/${DEFAULT_LOCALE}`.length) || '/';
     return NextResponse.redirect(url, 308);

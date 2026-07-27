@@ -19,7 +19,7 @@ const en = {
     papers: 'Papers',
     about: 'About',
     contact: 'Contact',
-    primary: 'Primary',
+    primary: 'Primary navigation',
     skipToContent: 'Skip to content',
     switchLanguage: 'Leer en español',
   },
@@ -99,7 +99,6 @@ const en = {
       sending: 'Sending',
       success: 'Message received. We will be in touch.',
       error: 'The message could not be sent. Please try again, or write to',
-      required: 'Please complete every field.',
     },
   },
   notFound: {
@@ -115,6 +114,7 @@ const en = {
       'Independent research on consciousness, quantum mechanics, and artificial intelligence.',
     sections: 'Sections',
     contactHeading: 'Contact',
+    navLabel: 'Footer',
   },
 };
 
@@ -124,7 +124,7 @@ const es: Dictionary = {
     papers: 'Artículos',
     about: 'Acerca de',
     contact: 'Contacto',
-    primary: 'Principal',
+    primary: 'Navegación principal',
     skipToContent: 'Ir al contenido',
     switchLanguage: 'Read in English',
   },
@@ -204,7 +204,6 @@ const es: Dictionary = {
       sending: 'Enviando',
       success: 'Mensaje recibido. Te responderemos pronto.',
       error: 'No se pudo enviar el mensaje. Inténtalo de nuevo o escribe a',
-      required: 'Completa todos los campos.',
     },
   },
   notFound: {
@@ -220,6 +219,7 @@ const es: Dictionary = {
       'Investigación independiente sobre consciencia, mecánica cuántica e inteligencia artificial.',
     sections: 'Secciones',
     contactHeading: 'Contacto',
+    navLabel: 'Pie de página',
   },
 };
 

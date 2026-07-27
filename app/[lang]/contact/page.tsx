@@ -11,7 +11,7 @@ import {
   webPageNode,
   websiteNode,
 } from '@/lib/schema';
-import { DEFAULT_LOCALE, alternatesFor, isLocale, type Locale } from '@/lib/site';
+import { DEFAULT_LOCALE, alternatesFor, isLocale, ogImageFor, type Locale } from '@/lib/site';
 
 export const revalidate = 3600;
 
@@ -35,6 +35,7 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
       url: alternatesFor(locale, PATH).canonical,
       title: t.contact.title,
       description: DESCRIPTION[locale],
+      images: ogImageFor(locale),
     },
   };
 }
@@ -73,7 +74,7 @@ export default function ContactPage({ params }: { params: { lang: string } }) {
           </div>
         </section>
 
-        <main id="main">
+        <main id="main" tabIndex={-1}>
           <div
             className="container container--reading"
             style={{ paddingBlock: 'var(--spacing-12)' }}

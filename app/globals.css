@@ -152,7 +152,7 @@ textarea {
   color: var(--text-primary);
 }
 
-.site-nav__link[aria-current='page'] {
+.site-nav__link--active {
   color: var(--text-primary);
   border-bottom-color: var(--text-primary);
 }
@@ -583,10 +583,14 @@ textarea {
   transition: border-color var(--transition);
 }
 
-.field__control:focus {
-  outline: none;
+.field__control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-muted);
+}
+
+.field__control:focus:not(:focus-visible) {
+  border-color: var(--accent);
 }
 
 textarea.field__control {
@@ -747,4 +751,32 @@ textarea.field__control {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-3);
+}
+
+/* -------------------------------------------------------------------------- */
+/* WordPress-supplied documents                                                */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Some pages are authored in Elementor as a complete standalone document with
+ * their own light-themed stylesheet, whose cards and headings hardcode light
+ * colours. Rendering that as a light island keeps it internally consistent and
+ * legible under the dark theme instead of mixing the two palettes.
+ */
+.wp-document {
+  color-scheme: light;
+  background: #ffffff;
+  color: #14161a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wp-document {
+    padding: var(--spacing-6);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+}
+
+.archive-heading {
+  margin-top: var(--spacing-12);
 }

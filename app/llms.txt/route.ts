@@ -1,5 +1,5 @@
 import { SITE_NAME, SITE_URL, localeUrl } from '@/lib/site';
-import { decodeHtmlEntities, excerptFrom, getPosts, stripHtml } from '@/lib/wordpress';
+import { decodeHtmlEntities, excerptFrom, getPosts, stripHtml, timestamps } from '@/lib/wordpress';
 
 export const revalidate = 3600;
 
@@ -35,14 +35,32 @@ export async function GET() {
     for (const post of posts) {
       const title = decodeHtmlEntities(stripHtml(post.title.rendered));
       const summary = excerptFrom(post.content.rendered, 200);
-      const date = (post.modified || post.date).slice(0, 10);
-      lines.push(`- [${title}](${localeUrl('en', `/${post.slug}`)}) — ${summary} (updated ${date})`);
+      const date = timestamps(post).modified.slice(0, 10);
+      lines.push(
+        `- [${title}](${localeUrl('en', `/${post.slug}`)}) — ${summary} (updated ${date}; ` +
+          `Spanish: ${localeUrl('es', `/${post.slug}`)})`
+      );
     }
   } else {
     lines.push('- The article index is temporarily unavailable.');
   }
 
-  lines.push('', '## Optional', '', `- [Sitemap](${SITE_URL}/sitemap.xml)`, '');
+  lines.push(
+    '',
+    '## Spanish',
+    '',
+    'Every page above has a Spanish translation under /es. Article bodies are machine-translated from the English original, which remains authoritative.',
+    '',
+    `- [Investigación](${localeUrl('es', '/')})`,
+    `- [Artículos](${localeUrl('es', '/papers')})`,
+    `- [Acerca de](${localeUrl('es', '/about')})`,
+    `- [Contacto](${localeUrl('es', '/contact')})`,
+    '',
+    '## Optional',
+    '',
+    `- [Sitemap](${SITE_URL}/sitemap.xml)`,
+    ''
+  );
 
   return new Response(lines.join('\n'), {
     headers: {

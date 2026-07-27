@@ -32,7 +32,10 @@ export const HTML_LOCALE: Record<Locale, string> = {
  * `localePath('en', '/papers') === '/papers'`, `localePath('es', '/papers') === '/es/papers'`
  */
 export function localePath(locale: Locale, path = ''): string {
-  const clean = path === '/' ? '' : path;
+  // A protocol-relative path (`//host`) would leave the site entirely, and some
+  // of these paths originate in WordPress content. Collapse the leading slashes.
+  const normalised = path.replace(/^\/{2,}/, '/');
+  const clean = normalised === '/' ? '' : normalised;
   if (locale === DEFAULT_LOCALE) return clean || '/';
   return `/${locale}${clean}`;
 }
@@ -41,6 +44,24 @@ export function localePath(locale: Locale, path = ''): string {
 export function localeUrl(locale: Locale, path = ''): string {
   const p = localePath(locale, path);
   return p === '/' ? SITE_URL : `${SITE_URL}${p}`;
+}
+
+/**
+ * Open Graph image for a locale.
+ *
+ * Next only attaches a file-based `opengraph-image` to routes that do not
+ * declare their own `openGraph` object, so pages that set one must name the
+ * image explicitly or ship no share image at all.
+ */
+export function ogImageFor(locale: Locale) {
+  return [
+    {
+      url: localeUrl(locale, '/opengraph-image'),
+      width: 1200,
+      height: 630,
+      alt: `${SITE_NAME} — independent research on consciousness`,
+    },
+  ];
 }
 
 /** `alternates` block for Next metadata: canonical plus every hreflang variant. */

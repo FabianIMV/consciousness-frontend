@@ -9,16 +9,16 @@
  * clean fragment — see `sanitizeContent`.
  */
 
-import { DEFAULT_LOCALE, localePath, type Locale } from '@/lib/site';
+import { toRelativeUrl } from '@/lib/urls';
+
+export { toRelativeUrl } from '@/lib/urls';
+export { WP_CONTENT_CLASS, sanitizeContent } from '@/lib/sanitize';
 
 const WP_API_URL =
   process.env.WORDPRESS_API_URL || 'http://wp.consciousnessnetworks.com/wp-json/wp/v2';
 
 /** How long rendered pages may serve cached WordPress data, in seconds. */
 export const REVALIDATE_SECONDS = 60;
-
-/** Class applied to the element that receives WordPress HTML. */
-export const WP_CONTENT_CLASS = 'article-content';
 
 export interface WordPressMedia {
   source_url: string;
@@ -31,7 +31,10 @@ export interface WordPressMedia {
 interface WordPressEntity {
   id: number;
   date: string;
+  /** UTC counterparts. WordPress omits the offset from `date`/`modified`. */
+  date_gmt?: string;
   modified?: string;
+  modified_gmt?: string;
   slug: string;
   title: { rendered: string };
   content: { rendered: string };
@@ -148,8 +151,30 @@ export function truncate(text: string, length = 160): string {
   return `${(lastSpace > length * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[.,;:\s]+$/, '')}…`;
 }
 
+/**
+ * Summary text for an entry.
+ *
+ * Built from the body's paragraphs rather than the whole document: flattening
+ * everything runs a heading straight into the sentence after it, producing
+ * excerpts like "The Hard Problem Gets a Breakthrough Tool Why does the firing
+ * of neurons…". Paragraphs are joined only if the first one is too short to
+ * stand alone.
+ */
 export function excerptFrom(html: string, length = 160): string {
-  return truncate(stripHtml(html), length);
+  if (!html) return '';
+
+  const paragraphs = Array.from(html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
+    .map((match) => stripHtml(match[1]))
+    .filter(Boolean);
+
+  if (!paragraphs.length) return truncate(stripHtml(html), length);
+
+  let text = paragraphs[0];
+  for (let i = 1; i < paragraphs.length && text.length < length * 0.6; i += 1) {
+    text += ` ${paragraphs[i]}`;
+  }
+
+  return truncate(text, length);
 }
 
 export function wordCount(html: string): number {
@@ -163,39 +188,26 @@ export function readingTime(html: string): number {
 }
 
 /* -------------------------------------------------------------------------- */
-/* URL helpers                                                                 */
+/* Media and timestamps                                                        */
 /* -------------------------------------------------------------------------- */
 
-/** WordPress hosts whose URLs are proxied by this frontend (see next.config.js). */
-const WP_HOSTS = [
-  'wp.consciousnessnetworks.com',
-  'consciousnessnetworks.com',
-  'www.consciousnessnetworks.com',
-  '52.0.124.233',
-];
-
-function isWordPressUrl(url: string): boolean {
-  try {
-    return WP_HOSTS.includes(new URL(url).hostname);
-  } catch {
-    return false;
-  }
+/**
+ * ISO 8601 timestamp with an explicit UTC designator.
+ *
+ * WordPress returns `date`/`modified` as site-local time with no offset, which
+ * is ambiguous in structured data. The `_gmt` variants carry the same instant in
+ * UTC but still omit the `Z`.
+ */
+export function toIsoUtc(local: string, gmt?: string): string {
+  if (gmt) return gmt.endsWith('Z') ? gmt : `${gmt}Z`;
+  return local;
 }
 
-/**
- * Rewrites an absolute WordPress URL to a site-relative path so it is served
- * over HTTPS through the rewrite in next.config.js instead of over plain HTTP.
- */
-export function toRelativeUrl(url: string): string {
-  if (!url) return url;
-  if (!/^https?:\/\//i.test(url)) return url;
-  if (!isWordPressUrl(url)) return url;
-  try {
-    const parsed = new URL(url);
-    return `${parsed.pathname}${parsed.search}`;
-  } catch {
-    return url;
-  }
+/** Publication and modification instants for an entry, in UTC. */
+export function timestamps(entry: { date: string; date_gmt?: string; modified?: string; modified_gmt?: string }) {
+  const published = toIsoUtc(entry.date, entry.date_gmt);
+  const modified = entry.modified ? toIsoUtc(entry.modified, entry.modified_gmt) : published;
+  return { published, modified };
 }
 
 /**
@@ -220,206 +232,8 @@ export function getFeaturedImage(entry: WordPressEntity): string | null {
 }
 
 export function getFeaturedImageAlt(entry: WordPressEntity): string {
-  const alt = entry._embedded?.['wp:featuredmedia']?.[0]?.alt_text;
-  return alt?.trim() || decodeHtmlEntities(stripHtml(entry.title.rendered));
-}
-
-/* -------------------------------------------------------------------------- */
-/* Content sanitising                                                          */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Prefixes every selector in a stylesheet with `scope`, so CSS pasted into a
- * WordPress editor cannot restyle the rest of the site.
- * Selectors that target the document itself (`html`, `body`, `:root`, `*`) are
- * remapped onto the scope element.
- */
-function scopeCss(css: string, scope: string): string {
-  const source = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  const rules: string[] = [];
-  let i = 0;
-
-  while (i < source.length) {
-    const open = source.indexOf('{', i);
-    if (open === -1) break;
-
-    const prelude = source.slice(i, open).trim();
-
-    let depth = 1;
-    let j = open + 1;
-    while (j < source.length && depth > 0) {
-      if (source[j] === '{') depth++;
-      else if (source[j] === '}') depth--;
-      j++;
-    }
-    const body = source.slice(open + 1, j - 1);
-
-    if (prelude.startsWith('@')) {
-      const atRule = prelude.split(/[\s({]/)[0].toLowerCase();
-      // Conditional groups contain nested rules that also need scoping;
-      // @keyframes and @font-face define names, not selectors.
-      if (['@media', '@supports', '@layer', '@container'].includes(atRule)) {
-        rules.push(`${prelude}{${scopeCss(body, scope)}}`);
-      } else if (atRule !== '@import') {
-        rules.push(`${prelude}{${body}}`);
-      }
-    } else if (prelude) {
-      const targetsDocument = prelude
-        .split(',')
-        .some((selector) => /^\s*(?::root|html|body|\*)\s*$/i.test(selector));
-
-      rules.push(
-        `${scopeSelectors(prelude, scope)}{${targetsDocument ? dropPageChrome(body) : body}}`
-      );
-    }
-
-    i = j;
-  }
-
-  return rules.join('\n');
-}
-
-/**
- * Removes page-level colour declarations from a rule that originally targeted
- * `html`, `body`, `:root`, or `*`. Those set the theme, which belongs to the
- * site — a pasted stylesheet asking for `background: white` would otherwise
- * punch a white block into the page for readers using the dark theme.
- */
-function dropPageChrome(declarations: string): string {
-  return declarations
-    .split(';')
-    .filter((declaration) => !/^\s*(background(-color|-image)?|color)\s*:/i.test(declaration))
-    .join(';');
-}
-
-function scopeSelectors(selectorList: string, scope: string): string {
-  return selectorList
-    .split(',')
-    .map((raw) => {
-      const selector = raw.trim();
-      if (!selector) return '';
-      if (selector === '*') return `${scope}, ${scope} *`;
-
-      const documentSelector = selector.match(/^(?::root|html|body)\b(.*)$/i);
-      if (documentSelector) {
-        const rest = documentSelector[1].trim();
-        return rest ? `${scope} ${rest}` : scope;
-      }
-
-      return `${scope} ${selector}`;
-    })
-    .filter(Boolean)
-    .join(', ');
-}
-
-/**
- * Turns WordPress `content.rendered` into a fragment that is safe to inject.
- *
- * Elementor's text widget lets an editor paste a complete HTML document. That
- * document's `<style>` block is global: on the papers page it redefined `*`,
- * `body`, and `.container` — the frontend's own layout class — and broke the
- * page around it. This strips the document wrapper, scopes any stylesheet to
- * the content element, points media at the HTTPS proxy, and rewrites internal
- * links so they land on the right locale without a redirect.
- */
-export function sanitizeContent(html: string, locale: Locale = DEFAULT_LOCALE): string {
-  if (!html) return '';
-
-  const styles: string[] = [];
-  let out = html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css) => {
-    styles.push(css);
-    return '';
-  });
-
-  out = out
-    // Scripts pasted into content are never wanted here.
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    // Document scaffolding from a pasted full page.
-    .replace(/<!DOCTYPE[^>]*>/gi, '')
-    .replace(/<\/?(?:html|head|body)[^>]*>/gi, '')
-    .replace(/<meta[^>]*>/gi, '')
-    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
-    // External stylesheet and font requests injected mid-document.
-    .replace(/<link[^>]*>/gi, '');
-
-  out = demoteTopHeadings(out);
-  out = rewriteMediaUrls(out);
-  out = rewriteInternalLinks(out, locale);
-  out = annotateImages(out);
-
-  const scoped = styles
-    .map((css) => scopeCss(css, `.${WP_CONTENT_CLASS}`))
-    .filter(Boolean)
-    .join('\n');
-
-  return scoped ? `<style>${scoped}</style>${out}` : out;
-}
-
-/**
- * Demotes `<h1>` in body content to `<h2>`. Each page already renders its own
- * `<h1>`; a second one from an editor's pasted markup would leave the document
- * with two top-level headings.
- */
-function demoteTopHeadings(html: string): string {
-  return html.replace(/<(\/?)h1(\s[^>]*)?>/gi, (_, slash, attrs) => `<${slash}h2${attrs || ''}>`);
-}
-
-/** Points `src` and `srcset` at the HTTPS proxy path. */
-function rewriteMediaUrls(html: string): string {
-  return html
-    .replace(/(<(?:img|source|video)[^>]+src=")([^"]+)(")/gi, (_, pre, url, post) => pre + toRelativeUrl(url) + post)
-    .replace(/(<(?:img|source)[^>]+srcset=")([^"]+)(")/gi, (_, pre, srcset, post) => {
-      const rewritten = srcset
-        .split(',')
-        .map((candidate: string) => {
-          const [url, ...descriptor] = candidate.trim().split(/\s+/);
-          return [toRelativeUrl(url), ...descriptor].join(' ');
-        })
-        .join(', ');
-      return pre + rewritten + post;
-    });
-}
-
-/**
- * Normalises links authored inside WordPress.
- * Absolute links back to the site and hardcoded `/en/...` paths both become the
- * correct path for the locale being rendered, so no internal link 307s.
- */
-function rewriteInternalLinks(html: string, locale: Locale): string {
-  return html.replace(/(<a[^>]+href=")([^"]+)(")/gi, (match, pre, href, post) => {
-    if (/^(?:mailto:|tel:|#)/i.test(href)) return match;
-
-    let path: string;
-
-    if (/^https?:\/\//i.test(href)) {
-      if (!isWordPressUrl(href)) return match;
-      try {
-        path = new URL(href).pathname;
-      } catch {
-        return match;
-      }
-    } else if (href.startsWith('/')) {
-      path = href;
-    } else {
-      return match;
-    }
-
-    // Drop an existing locale prefix before applying the current one.
-    path = path.replace(/^\/(?:en|es)(?=\/|$)/, '') || '/';
-    // WordPress emits trailing slashes; this frontend's routes do not use them.
-    if (path.length > 1) path = path.replace(/\/$/, '');
-
-    return pre + localePath(locale, path) + post;
-  });
-}
-
-/** Adds lazy loading and async decoding to body images that lack them. */
-function annotateImages(html: string): string {
-  return html.replace(/<img\b([^>]*)>/gi, (match, attrs: string) => {
-    let out = attrs;
-    if (!/\bloading=/i.test(out)) out += ' loading="lazy"';
-    if (!/\bdecoding=/i.test(out)) out += ' decoding="async"';
-    if (!/\balt=/i.test(out)) out += ' alt=""';
-    return `<img${out}>`;
-  });
+  // WordPress returns alt text with entities intact; React escapes on output,
+  // so an undecoded `&#8217;` would be announced literally by a screen reader.
+  const alt = decodeHtmlEntities(entry._embedded?.['wp:featuredmedia']?.[0]?.alt_text ?? '').trim();
+  return alt || decodeHtmlEntities(stripHtml(entry.title.rendered));
 }

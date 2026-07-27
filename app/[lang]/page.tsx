@@ -11,7 +11,8 @@ import {
   webPageNode,
   websiteNode,
 } from '@/lib/schema';
-import { DEFAULT_LOCALE, alternatesFor, localePath, type Locale } from '@/lib/site';
+import { translateContent } from '@/lib/i18n';
+import { DEFAULT_LOCALE, alternatesFor, localePath, ogImageFor, type Locale } from '@/lib/site';
 import {
   REVALIDATE_SECONDS,
   decodeHtmlEntities,
@@ -21,6 +22,7 @@ import {
   getPosts,
   readingTime,
   stripHtml,
+  timestamps,
 } from '@/lib/wordpress';
 
 export const revalidate = REVALIDATE_SECONDS;
@@ -45,6 +47,7 @@ export function generateMetadata({ params }: { params: { lang: Locale } }): Meta
       url: alternatesFor(locale, '/').canonical,
       title: `Consciousness Networks — ${t.home.title}`,
       description: DESCRIPTION[locale],
+      images: ogImageFor(locale),
     },
   };
 }
@@ -62,12 +65,32 @@ export default async function HomePage({ params }: { params: { lang: Locale } })
   const t = getDictionary(locale);
 
   const posts = await getPosts();
-  const [lede, ...rest] = posts;
 
-  const entries = posts.map((post) => ({
-    slug: post.slug,
-    title: decodeHtmlEntities(stripHtml(post.title.rendered)),
-  }));
+  // Headlines and excerpts are translated here too. Without this, a Spanish
+  // reader saw Spanish chrome wrapped around English headlines, and the link
+  // text stopped matching the title on the article page it opened.
+  const entries = await Promise.all(
+    posts.map(async (post) => {
+      const [title, excerpt] = await Promise.all([
+        translateContent(decodeHtmlEntities(stripHtml(post.title.rendered)), locale),
+        translateContent(excerptFrom(post.content.rendered, 260), locale),
+      ]);
+
+      return {
+        id: post.id,
+        slug: post.slug,
+        title,
+        excerpt,
+        href: localePath(locale, `/${post.slug}`),
+        image: getFeaturedImage(post),
+        imageAlt: getFeaturedImageAlt(post),
+        published: timestamps(post).published,
+        minutes: readingTime(post.content.rendered),
+      };
+    })
+  );
+
+  const [lede, ...rest] = entries;
 
   const structuredData = graph([
     organizationNode(),
@@ -78,8 +101,15 @@ export default async function HomePage({ params }: { params: { lang: Locale } })
       name: `Consciousness Networks — ${t.home.title}`,
       description: DESCRIPTION[locale],
       type: 'CollectionPage',
+      mainEntity: entries.length ? `${alternatesFor(locale, '/').canonical}#itemlist` : undefined,
     }),
-    entries.length ? itemListNode(locale, entries.map((e) => ({ name: e.title, path: `/${e.slug}` }))) : null,
+    entries.length
+      ? itemListNode(
+          locale,
+          '/',
+          entries.map((entry) => ({ name: entry.title, path: `/${entry.slug}` }))
+        )
+      : null,
   ]);
 
   return (
@@ -88,98 +118,92 @@ export default async function HomePage({ params }: { params: { lang: Locale } })
       <SiteHeader locale={locale} active="research" path="/" />
 
       <div className="page__body">
-        <section className="page-hero">
+        <main id="main" tabIndex={-1}>
+          <section className="page-hero">
+            <div className="container">
+              <p className="eyebrow page-hero__eyebrow">{t.home.eyebrow}</p>
+              <h1 className="page-hero__title">{t.home.title}</h1>
+              <p className="standfirst">{t.home.subtitle}</p>
+            </div>
+          </section>
+
           <div className="container">
-            <p className="eyebrow page-hero__eyebrow">{t.home.eyebrow}</p>
-            <h1 className="page-hero__title">{t.home.title}</h1>
-            <p className="standfirst">{t.home.subtitle}</p>
-          </div>
-        </section>
+            <div className="home-layout">
+              <div>
+                {!entries.length && <p className="standfirst">{t.home.empty}</p>}
 
-        <div className="container">
-          <div className="home-layout">
-            <main id="main">
-              {!posts.length && <p className="standfirst">{t.home.empty}</p>}
+                {lede && (
+                  <article className="lede">
+                    {lede.image && (
+                      <figure className="lede__figure">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={lede.image}
+                          alt={lede.imageAlt}
+                          width={1200}
+                          height={675}
+                          fetchPriority="high"
+                        />
+                      </figure>
+                    )}
 
-              {lede && (
-                <article className="lede">
-                  {getFeaturedImage(lede) && (
-                    <figure className="lede__figure">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={getFeaturedImage(lede)!}
-                        alt={getFeaturedImageAlt(lede)}
-                        width={1200}
-                        height={675}
-                        fetchPriority="high"
-                      />
-                    </figure>
-                  )}
+                    <div>
+                      <p className="metadata">
+                        {t.home.latest} ·{' '}
+                        <time dateTime={lede.published}>{formatDate(lede.published, locale)}</time> ·{' '}
+                        {t.article.readingTime(lede.minutes)}
+                      </p>
 
-                  <div>
-                    <p className="metadata">
-                      {t.home.latest} · <time dateTime={lede.date}>{formatDate(lede.date, locale)}</time> ·{' '}
-                      {t.article.readingTime(readingTime(lede.content.rendered))}
-                    </p>
+                      <h2 className="lede__title">
+                        <Link href={lede.href}>{lede.title}</Link>
+                      </h2>
 
-                    <h2 className="lede__title">
-                      <Link href={localePath(locale, `/${lede.slug}`)}>
-                        {decodeHtmlEntities(stripHtml(lede.title.rendered))}
+                      <p className="lede__excerpt">{lede.excerpt}</p>
+
+                      <Link href={lede.href} className="lede__more">
+                        {t.home.readArticle}
                       </Link>
+                    </div>
+                  </article>
+                )}
+
+                {rest.length > 0 && (
+                  <section aria-labelledby="archive-heading">
+                    <h2 id="archive-heading" className="section-heading archive-heading">
+                      {t.home.archive}
                     </h2>
 
-                    <p className="lede__excerpt">{excerptFrom(lede.content.rendered, 260)}</p>
-
-                    <Link href={localePath(locale, `/${lede.slug}`)} className="lede__more">
-                      {t.home.readArticle}
-                    </Link>
-                  </div>
-                </article>
-              )}
-
-              {rest.length > 0 && (
-                <section aria-labelledby="archive-heading">
-                  <h2
-                    id="archive-heading"
-                    className="section-heading"
-                    style={{ marginTop: 'var(--spacing-12)' }}
-                  >
-                    {t.home.archive}
-                  </h2>
-
-                  <div className="entry-list">
-                    {rest.map((post) => {
-                      const image = getFeaturedImage(post);
-                      const href = localePath(locale, `/${post.slug}`);
-
-                      return (
+                    <div className="entry-list">
+                      {rest.map((entry) => (
                         <article
-                          key={post.id}
-                          className={image ? 'entry entry--with-figure' : 'entry'}
+                          key={entry.id}
+                          className={entry.image ? 'entry entry--with-figure' : 'entry'}
                         >
                           <div>
                             <p className="metadata">
-                              <time dateTime={post.date}>{formatDate(post.date, locale)}</time> ·{' '}
-                              {t.article.readingTime(readingTime(post.content.rendered))}
+                              <time dateTime={entry.published}>
+                                {formatDate(entry.published, locale)}
+                              </time>{' '}
+                              · {t.article.readingTime(entry.minutes)}
                             </p>
 
                             <h3 className="entry__title">
-                              <Link href={href}>{decodeHtmlEntities(stripHtml(post.title.rendered))}</Link>
+                              <Link href={entry.href}>{entry.title}</Link>
                             </h3>
 
-                            <p className="entry__excerpt">{excerptFrom(post.content.rendered, 180)}</p>
+                            <p className="entry__excerpt">{entry.excerpt}</p>
 
-                            <Link href={href} className="entry__more">
+                            <Link href={entry.href} className="entry__more">
                               {t.home.readMore}
                             </Link>
                           </div>
 
-                          {image && (
+                          {entry.image && (
                             <figure className="entry__figure">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
-                                src={image}
-                                alt={getFeaturedImageAlt(post)}
+                                src={entry.image}
+                                alt={entry.imageAlt}
                                 width={400}
                                 height={300}
                                 loading="lazy"
@@ -188,50 +212,36 @@ export default async function HomePage({ params }: { params: { lang: Locale } })
                             </figure>
                           )}
                         </article>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-            </main>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </div>
 
-            <aside className="home-aside">
-              <nav aria-labelledby="aside-sections">
-                <h2 id="aside-sections" className="aside-block__heading">
-                  {t.home.sidebarSections}
-                </h2>
-                <div className="aside-nav">
-                  <Link href={localePath(locale, '/')} aria-current="page">
-                    {t.nav.research}
+              <aside className="home-aside">
+                <section aria-labelledby="aside-reading">
+                  <h2 id="aside-reading" className="aside-block__heading">
+                    {t.home.sidebarReading}
+                  </h2>
+                  <p className="aside-block__text">{t.home.sidebarReadingText}</p>
+                  <Link href={localePath(locale, '/papers')} className="aside-link">
+                    {t.home.sidebarReadingCta}
                   </Link>
-                  <Link href={localePath(locale, '/papers')}>{t.nav.papers}</Link>
-                  <Link href={localePath(locale, '/about')}>{t.nav.about}</Link>
-                  <Link href={localePath(locale, '/contact')}>{t.nav.contact}</Link>
-                </div>
-              </nav>
+                </section>
 
-              <section aria-labelledby="aside-reading">
-                <h2 id="aside-reading" className="aside-block__heading">
-                  {t.home.sidebarReading}
-                </h2>
-                <p className="aside-block__text">{t.home.sidebarReadingText}</p>
-                <Link href={localePath(locale, '/papers')} className="aside-link">
-                  {t.home.sidebarReadingCta}
-                </Link>
-              </section>
-
-              <section aria-labelledby="aside-about">
-                <h2 id="aside-about" className="aside-block__heading">
-                  {t.home.sidebarAbout}
-                </h2>
-                <p className="aside-block__text">{t.home.sidebarAboutText}</p>
-                <Link href={localePath(locale, '/about')} className="aside-link">
-                  {t.home.sidebarAboutCta}
-                </Link>
-              </section>
-            </aside>
+                <section aria-labelledby="aside-about">
+                  <h2 id="aside-about" className="aside-block__heading">
+                    {t.home.sidebarAbout}
+                  </h2>
+                  <p className="aside-block__text">{t.home.sidebarAboutText}</p>
+                  <Link href={localePath(locale, '/about')} className="aside-link">
+                    {t.home.sidebarAboutCta}
+                  </Link>
+                </section>
+              </aside>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
 
       <SiteFooter locale={locale} />

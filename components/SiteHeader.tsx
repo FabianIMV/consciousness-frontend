@@ -12,17 +12,22 @@ const NAV: Array<{ key: NavKey; path: string }> = [
 ];
 
 /**
- * @param active  Navigation entry to mark as the current page.
+ * @param active  Navigation entry to highlight.
+ * @param exact   Whether `active` is the page itself. An article belongs to the
+ *                Research section but is not the Research page, so it highlights
+ *                without claiming `aria-current="page"`.
  * @param path    Route without a locale prefix (`/papers`, `/the-soul-crisis`),
  *                used to link to the same page in the other language.
  */
 export default function SiteHeader({
   locale,
   active,
+  exact = true,
   path = '/',
 }: {
   locale: Locale;
   active?: NavKey;
+  exact?: boolean;
   path?: string;
 }) {
   const t = getDictionary(locale);
@@ -40,8 +45,10 @@ export default function SiteHeader({
             <Link
               key={key}
               href={localePath(locale, navPath)}
-              className="site-nav__link"
-              aria-current={active === key ? 'page' : undefined}
+              className={
+                active === key ? 'site-nav__link site-nav__link--active' : 'site-nav__link'
+              }
+              aria-current={active === key && exact ? 'page' : undefined}
             >
               {t.nav[key]}
             </Link>

@@ -16,6 +16,7 @@ export default function EditorialPage({
   title,
   subtitle,
   content,
+  contentLanguage,
   fallbackText,
   structuredData,
 }: {
@@ -26,6 +27,8 @@ export default function EditorialPage({
   title: string;
   subtitle: string;
   content: string;
+  /** Language of the body, when it differs from the page locale. */
+  contentLanguage?: string;
   fallbackText: string;
   structuredData: unknown;
 }) {
@@ -43,10 +46,14 @@ export default function EditorialPage({
           </div>
         </section>
 
-        <main id="main">
+        <main id="main" tabIndex={-1}>
           <div className="container container--reading" style={{ paddingBlock: 'var(--spacing-12)' }}>
             {content ? (
-              <div className={WP_CONTENT_CLASS} dangerouslySetInnerHTML={{ __html: content }} />
+              <div
+                className={WP_CONTENT_CLASS}
+                lang={contentLanguage}
+                dangerouslySetInnerHTML={{ __html: content }}
+              />
             ) : (
               <p className="standfirst">{fallbackText}</p>
             )}

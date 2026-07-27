@@ -9,7 +9,7 @@ import {
   webPageNode,
   websiteNode,
 } from '@/lib/schema';
-import { DEFAULT_LOCALE, alternatesFor, isLocale, type Locale } from '@/lib/site';
+import { DEFAULT_LOCALE, alternatesFor, isLocale, ogImageFor, type Locale } from '@/lib/site';
 import { REVALIDATE_SECONDS, getPageBySlug, sanitizeContent } from '@/lib/wordpress';
 
 export const revalidate = REVALIDATE_SECONDS;
@@ -34,6 +34,7 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
       url: alternatesFor(locale, PATH).canonical,
       title: t.papers.title,
       description: DESCRIPTION[locale],
+      images: ogImageFor(locale),
     },
   };
 }
@@ -43,9 +44,11 @@ export default async function PapersPage({ params }: { params: { lang: string } 
   const t = getDictionary(locale);
 
   const page = await getPageBySlug('papers');
-  const content = page
-    ? await translateContent(sanitizeContent(page.content.rendered, locale), locale)
-    : '';
+  const source = page ? sanitizeContent(page.content.rendered, locale) : '';
+  const content = source ? await translateContent(source, locale) : '';
+  // Without a translation key the body stays English; say so, or a Spanish
+  // screen reader voices English prose.
+  const contentLanguage = locale !== 'en' && content === source ? 'en' : undefined;
 
   const structuredData = graph([
     organizationNode(),
@@ -72,6 +75,7 @@ export default async function PapersPage({ params }: { params: { lang: string } 
       title={t.papers.title}
       subtitle={t.papers.subtitle}
       content={content}
+      contentLanguage={contentLanguage}
       fallbackText={t.papers.unavailable}
       structuredData={structuredData}
     />

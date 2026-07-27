@@ -54,12 +54,14 @@ export function webPageNode({
   name,
   description,
   type = 'WebPage',
+  mainEntity,
 }: {
   locale: Locale;
   path: string;
   name: string;
   description: string;
   type?: 'WebPage' | 'CollectionPage' | 'AboutPage' | 'ContactPage';
+  mainEntity?: string;
 }) {
   const url = localeUrl(locale, path);
   return {
@@ -71,6 +73,7 @@ export function webPageNode({
     inLanguage: HTML_LOCALE[locale],
     isPartOf: { '@id': WEBSITE_ID },
     publisher: { '@id': ORGANIZATION_ID },
+    ...(mainEntity ? { mainEntity: { '@id': mainEntity } } : {}),
   };
 }
 
@@ -115,6 +118,7 @@ export function articleNode({
   return {
     '@type': 'Article',
     '@id': `${url}#article`,
+    url,
     headline,
     description,
     inLanguage: HTML_LOCALE[locale],
@@ -132,13 +136,18 @@ export function articleNode({
   };
 }
 
-/** Ordered list of articles — helps answer engines read an index page. */
+/**
+ * Ordered list of articles — helps answer engines read an index page.
+ * Carries an `@id` so the page node can claim it as its `mainEntity`.
+ */
 export function itemListNode(
   locale: Locale,
+  path: string,
   items: Array<{ name: string; path: string }>
 ) {
   return {
     '@type': 'ItemList',
+    '@id': `${localeUrl(locale, path)}#itemlist`,
     itemListOrder: 'https://schema.org/ItemListOrderDescending',
     numberOfItems: items.length,
     itemListElement: items.map((item, index) => ({
