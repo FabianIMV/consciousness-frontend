@@ -1,175 +1,188 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { getDictionary } from '@/lib/dictionaries';
+import { CONTACT_EMAIL, type Locale } from '@/lib/site';
 
-export default function ContactForm() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
-  });
-  const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
+type Status = 'idle' | 'sending' | 'success' | 'error';
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+const EMPTY = { name: '', email: '', subject: '', message: '' };
+
+export default function ContactForm({ locale }: { locale: Locale }) {
+  const t = getDictionary(locale).contact.form;
+  const fieldId = useId();
+
+  const [values, setValues] = useState(EMPTY);
+  const [status, setStatus] = useState<Status>('idle');
+  const noticeRef = useRef<HTMLParagraphElement>(null);
+
+  const topics = [
+    t.topics.collaboration,
+    t.topics.quantum,
+    t.topics.ai,
+    t.topics.paper,
+    t.topics.general,
+  ];
+
+  // Submitting blurs the button, so focus has to be placed deliberately or a
+  // keyboard user is dropped at the top of the document with no feedback.
+  useEffect(() => {
+    if (status === 'success' || status === 'error') noticeRef.current?.focus();
+  }, [status]);
+
+  const handleChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = event.target;
+    setValues((previous) => ({ ...previous, [name]: value }));
+    // A result banner describes the previous submission, not what is being
+    // typed now.
+    setStatus((previous) => (previous === 'success' || previous === 'error' ? 'idle' : previous));
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (status === 'sending') return;
+
+    // Snapshot what is actually being sent: clearing `values` wholesale would
+    // discard anything typed while the request was in flight.
+    const submitted = values;
     setStatus('sending');
-    setErrorMessage('');
 
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...submitted, locale }),
       });
 
-      if (!response.ok) throw new Error('Failed to send message');
+      if (!response.ok) throw new Error(`Request failed with ${response.status}`);
 
+      setValues((current) =>
+        Object.fromEntries(
+          Object.entries(current).map(([key, value]) => [
+            key,
+            value === submitted[key as keyof typeof submitted] ? '' : value,
+          ])
+        ) as typeof EMPTY
+      );
       setStatus('success');
-      setFormData({ name: '', email: '', subject: '', message: '' });
-      setTimeout(() => setStatus('idle'), 5000);
-    } catch (error) {
+    } catch {
       setStatus('error');
-      setErrorMessage('Could not send your message. Please try again or write to contact@consciousnessnetworks.com');
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: 'var(--spacing-3) var(--spacing-4)',
-    border: '1px solid var(--border-medium)',
-    borderRadius: 'var(--border-radius)',
-    fontSize: 'var(--text-base)',
-    background: 'var(--bg-primary)',
-    color: 'var(--text-primary)',
-    outline: 'none',
-    transition: 'border-color var(--transition-base)',
-    fontFamily: 'inherit',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    color: 'var(--text-secondary)',
-    fontWeight: 'var(--font-medium)',
-    marginBottom: 'var(--spacing-2)',
-    fontSize: 'var(--text-sm)',
-  };
+  const sending = status === 'sending';
 
   return (
     <div>
-      {status === 'success' && (
-        <div style={{
-          background: 'rgba(34, 197, 94, 0.08)',
-          border: '1px solid rgba(34, 197, 94, 0.25)',
-          borderRadius: 'var(--border-radius)',
-          padding: 'var(--spacing-4)',
-          marginBottom: 'var(--spacing-6)',
-          color: '#15803d',
-          fontSize: 'var(--text-sm)',
-        }}>
-          Message received — we&apos;ll be in touch soon.
-        </div>
-      )}
+      {/* Always mounted so assistive tech is watching before a message lands. */}
+      <div aria-live="polite" aria-atomic="true">
+        {status === 'success' && (
+          <p
+            ref={noticeRef}
+            tabIndex={-1}
+            className="notice notice--success"
+            style={{ marginBottom: 'var(--spacing-6)' }}
+          >
+            {t.success}
+          </p>
+        )}
 
-      {status === 'error' && (
-        <div style={{
-          background: 'rgba(239, 68, 68, 0.08)',
-          border: '1px solid rgba(239, 68, 68, 0.25)',
-          borderRadius: 'var(--border-radius)',
-          padding: 'var(--spacing-4)',
-          marginBottom: 'var(--spacing-6)',
-          color: '#991b1b',
-          fontSize: 'var(--text-sm)',
-        }}>
-          {errorMessage}
-        </div>
-      )}
+        {status === 'error' && (
+          <p
+            ref={noticeRef}
+            tabIndex={-1}
+            className="notice notice--error"
+            style={{ marginBottom: 'var(--spacing-6)' }}
+          >
+            {t.error} <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+          </p>
+        )}
+      </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
-        <div>
-          <label htmlFor="name" style={labelStyle}>Name</label>
+      <form className="form" onSubmit={handleSubmit} aria-busy={sending}>
+        <div className="field">
+          <label className="field__label" htmlFor={`${fieldId}-name`}>
+            {t.name}
+          </label>
           <input
-            type="text"
-            id="name"
+            className="field__control"
+            id={`${fieldId}-name`}
             name="name"
+            type="text"
+            autoComplete="name"
             required
-            value={formData.name}
+            maxLength={120}
+            placeholder={t.namePlaceholder}
+            value={values.name}
             onChange={handleChange}
-            placeholder="Your name"
-            style={inputStyle}
           />
         </div>
 
-        <div>
-          <label htmlFor="email" style={labelStyle}>Email</label>
+        <div className="field">
+          <label className="field__label" htmlFor={`${fieldId}-email`}>
+            {t.email}
+          </label>
           <input
-            type="email"
-            id="email"
+            className="field__control"
+            id={`${fieldId}-email`}
             name="email"
+            type="email"
+            autoComplete="email"
             required
-            value={formData.email}
+            maxLength={200}
+            placeholder={t.emailPlaceholder}
+            value={values.email}
             onChange={handleChange}
-            placeholder="your@email.com"
-            style={inputStyle}
           />
         </div>
 
-        <div>
-          <label htmlFor="subject" style={labelStyle}>Topic</label>
+        <div className="field">
+          <label className="field__label" htmlFor={`${fieldId}-subject`}>
+            {t.topic}
+          </label>
           <select
-            id="subject"
+            className="field__control"
+            id={`${fieldId}-subject`}
             name="subject"
             required
-            value={formData.subject}
+            value={values.subject}
             onChange={handleChange}
-            style={inputStyle}
           >
-            <option value="">Select a topic</option>
-            <option value="Research Collaboration">Research collaboration</option>
-            <option value="Quantum Physics & Consciousness">Quantum physics &amp; consciousness</option>
-            <option value="AI Consciousness">AI and consciousness</option>
-            <option value="Paper Recommendation">Paper recommendation</option>
-            <option value="General Inquiry">General inquiry</option>
+            <option value="">{t.topicPlaceholder}</option>
+            {topics.map((topic) => (
+              <option key={topic} value={topic}>
+                {topic}
+              </option>
+            ))}
           </select>
         </div>
 
-        <div>
-          <label htmlFor="message" style={labelStyle}>Message</label>
+        <div className="field">
+          <label className="field__label" htmlFor={`${fieldId}-message`}>
+            {t.message}
+          </label>
           <textarea
-            id="message"
+            className="field__control"
+            id={`${fieldId}-message`}
             name="message"
             required
-            value={formData.message}
+            rows={8}
+            maxLength={5000}
+            placeholder={t.messagePlaceholder}
+            value={values.message}
             onChange={handleChange}
-            placeholder="Your message..."
-            rows={6}
-            style={{ ...inputStyle, resize: 'vertical' }}
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={status === 'sending'}
-          style={{
-            background: status === 'sending' ? 'var(--text-tertiary)' : 'linear-gradient(135deg, var(--primary-purple), #764ba2)',
-            color: 'white',
-            padding: 'var(--spacing-3) var(--spacing-6)',
-            border: 'none',
-            borderRadius: 'var(--border-radius)',
-            fontSize: 'var(--text-sm)',
-            fontWeight: 'var(--font-semibold)',
-            cursor: status === 'sending' ? 'not-allowed' : 'pointer',
-            letterSpacing: '0.02em',
-            alignSelf: 'flex-start',
-          }}
-        >
-          {status === 'sending' ? 'Sending…' : 'Send message'}
-        </button>
+        <div>
+          {/* aria-disabled rather than disabled: a disabled button loses focus
+              and drops out of the tab order mid-interaction. */}
+          <button type="submit" className="btn btn--primary" aria-disabled={sending}>
+            {sending ? `${t.sending}…` : t.submit}
+          </button>
+        </div>
       </form>
     </div>
   );

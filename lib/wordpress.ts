@@ -1,275 +1,239 @@
 /**
- * WordPress REST API Client
- * Fetches content from consciousnessnetworks.com WordPress backend
- * Uses IP direct access to bypass WordPress Multisite subdomain routing
+ * WordPress REST client.
+ *
+ * The backend is a WordPress install on Lightsail reached over its internal
+ * hostname. It is a Multisite, so requests go to the host directly rather than
+ * through the public domain, which would resolve to this frontend.
+ *
+ * Editors work in Elementor, so `content.rendered` cannot be trusted to be a
+ * clean fragment — see `sanitizeContent`.
  */
 
-const WP_API_URL = 'http://wp.consciousnessnetworks.com/wp-json/wp/v2';
+import { toRelativeUrl } from '@/lib/urls';
 
-export interface WordPressPost {
+export { toRelativeUrl } from '@/lib/urls';
+export { WP_CONTENT_CLASS, sanitizeContent } from '@/lib/sanitize';
+
+const WP_API_URL =
+  process.env.WORDPRESS_API_URL || 'http://wp.consciousnessnetworks.com/wp-json/wp/v2';
+
+/** How long rendered pages may serve cached WordPress data, in seconds. */
+export const REVALIDATE_SECONDS = 60;
+
+export interface WordPressMedia {
+  source_url: string;
+  alt_text: string;
+  media_details?: {
+    sizes?: Record<string, { source_url: string; width?: number; height?: number }>;
+  };
+}
+
+interface WordPressEntity {
   id: number;
   date: string;
-  modified: string;
+  /** UTC counterparts. WordPress omits the offset from `date`/`modified`. */
+  date_gmt?: string;
+  modified?: string;
+  modified_gmt?: string;
   slug: string;
-  status: string;
+  title: { rendered: string };
+  content: { rendered: string };
+  featured_media: number;
+  _embedded?: {
+    author?: Array<{ name: string; avatar_urls?: Record<string, string> }>;
+    'wp:featuredmedia'?: WordPressMedia[];
+  };
+}
+
+export interface WordPressPost extends WordPressEntity {
+  status?: string;
   sticky?: boolean;
-  title: {
-    rendered: string;
-  };
-  content: {
-    rendered: string;
-  };
-  excerpt: {
-    rendered: string;
-  };
-  author: number;
-  featured_media: number;
-  _embedded?: {
-    author?: Array<{
-      name: string;
-      avatar_urls: { [key: string]: string };
-    }>;
-    'wp:featuredmedia'?: Array<{
-      source_url: string;
-      alt_text: string;
-    }>;
-  };
+  excerpt?: { rendered: string };
+  author?: number;
 }
 
-export interface WordPressPage {
-  id: number;
-  date: string;
-  slug: string;
-  title: {
-    rendered: string;
-  };
-  content: {
-    rendered: string;
-  };
-  featured_media: number;
-  _embedded?: {
-    'wp:featuredmedia'?: Array<{
-      source_url: string;
-      alt_text: string;
-      media_details?: {
-        sizes?: {
-          medium?: { source_url: string };
-          large?: { source_url: string };
-        };
-      };
-    }>;
-  };
-}
+export interface WordPressPage extends WordPressEntity {}
 
-/**
- * Fetch all pages from WordPress (with featured images)
- */
-export async function getPages(): Promise<WordPressPage[]> {
+async function wpFetch<T>(path: string, fallback: T): Promise<T> {
   try {
-    const res = await fetch(`${WP_API_URL}/pages?per_page=100&_embed`, {
-      next: { revalidate: 60 } // Revalidate every 60 seconds
+    const res = await fetch(`${WP_API_URL}${path}`, {
+      next: { revalidate: REVALIDATE_SECONDS },
+      headers: { Accept: 'application/json' },
     });
 
     if (!res.ok) {
-      throw new Error(`Failed to fetch pages: ${res.status}`);
+      console.error(`[wordpress] ${path} responded ${res.status}`);
+      return fallback;
     }
 
-    return res.json();
+    return (await res.json()) as T;
   } catch (error) {
-    console.error('Error fetching pages:', error);
-    return [];
+    console.error(`[wordpress] ${path} failed:`, error);
+    return fallback;
   }
 }
 
-/**
- * Fetch a single page by slug
- */
-export async function getPageBySlug(slug: string): Promise<WordPressPage | null> {
-  try {
-    const res = await fetch(`${WP_API_URL}/pages?slug=${slug}&_embed`, {
-      next: { revalidate: 60 }
-    });
-
-    if (!res.ok) {
-      return null;
-    }
-
-    const pages = await res.json();
-    return pages[0] || null;
-  } catch (error) {
-    console.error('Error fetching page:', error);
-    return null;
-  }
-}
-
-/**
- * Fetch all posts (for blog)
- */
+/** All published posts, newest first. */
 export async function getPosts(): Promise<WordPressPost[]> {
-  try {
-    const res = await fetch(`${WP_API_URL}/posts?_embed&per_page=100`, {
-      next: { revalidate: 60 }
-    });
+  const posts = await wpFetch<WordPressPost[]>('/posts?_embed&per_page=100', []);
+  if (!Array.isArray(posts)) return [];
 
-    if (!res.ok) {
-      throw new Error(`Failed to fetch posts: ${res.status}`);
-    }
-
-    const posts = await res.json();
-
-    // Sort posts by date (newest first), ignoring sticky status
-    return posts.sort((a: WordPressPost, b: WordPressPost) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
-  } catch (error) {
-    console.error('Error fetching posts:', error);
-    return [];
-  }
+  return [...posts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-/**
- * Fetch a single post by slug
- */
 export async function getPostBySlug(slug: string): Promise<WordPressPost | null> {
-  try {
-    const res = await fetch(`${WP_API_URL}/posts?slug=${slug}&_embed`, {
-      next: { revalidate: 60 }
-    });
-
-    if (!res.ok) {
-      return null;
-    }
-
-    const posts = await res.json();
-    return posts[0] || null;
-  } catch (error) {
-    console.error('Error fetching post:', error);
-    return null;
-  }
-}
-
-/**
- * Fetch site information
- */
-export async function getSiteInfo() {
-  try {
-    const res = await fetch('https://consciousnessnetworks.com/wp-json', {
-      next: { revalidate: 3600 } // Revalidate every hour
-    });
-
-    if (!res.ok) {
-      throw new Error('Failed to fetch site info');
-    }
-
-    return res.json();
-  } catch (error) {
-    console.error('Error fetching site info:', error);
-    return null;
-  }
-}
-
-/**
- * Convert absolute WordPress URLs to relative paths
- * This allows Vercel to proxy images via HTTPS rewrite
- */
-export function toRelativeUrl(url: string): string {
-  if (!url) return url;
-
-  // Convert http://wp.consciousnessnetworks.com/wp-content to /wp-content
-  // Convert http://52.0.124.233/wp-content to /wp-content
-  // Convert https://consciousnessnetworks.com/wp-content to /wp-content
-  return url.replace(/^https?:\/\/[^\/]+(\/.*)$/, '$1');
-}
-
-/**
- * Process WordPress HTML content to convert image URLs to relative paths
- * This ensures images load via HTTPS through Vercel's rewrite proxy
- */
-export function processContent(html: string): string {
-  if (!html) return html;
-
-  // Replace all image src URLs with relative paths
-  return html.replace(
-    /(<img[^>]+src=")https?:\/\/[^\/]+(\/[^"]+)(")/g,
-    '$1$2$3'
-  ).replace(
-    /(<img[^>]+srcset=")([^"]+)(")/g,
-    (match, prefix, srcset, suffix) => {
-      // Also process srcset attributes
-      const processedSrcset = srcset.replace(
-        /https?:\/\/[^\/]+(\/[^\s,]+)/g,
-        '$1'
-      );
-      return prefix + processedSrcset + suffix;
-    }
+  const posts = await wpFetch<WordPressPost[]>(
+    `/posts?slug=${encodeURIComponent(slug)}&_embed`,
+    []
   );
+  return Array.isArray(posts) ? posts[0] ?? null : null;
 }
 
-/**
- * Strip HTML tags from content (for excerpts)
- */
-export function stripHtml(html: string): string {
-  if (!html) return '';
-  return html
-    .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '') // Remove style and script blocks
-    .replace(/<[^>]*>/g, '') // Remove all other tags
-    .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec)) // Decode numeric entities
-    .replace(/&[a-z]+;/gi, ' ') // Replace other entities with space for now
-    .replace(/\s+/g, ' ') // Collapse multiple whitespace
-    .trim();
+export async function getPages(): Promise<WordPressPage[]> {
+  const pages = await wpFetch<WordPressPage[]>('/pages?per_page=100&_embed', []);
+  return Array.isArray(pages) ? pages : [];
 }
 
-/**
- * Decode HTML entities in text
- * Converts entities like &#8217; to their actual characters
- */
+export async function getPageBySlug(slug: string): Promise<WordPressPage | null> {
+  const pages = await wpFetch<WordPressPage[]>(
+    `/pages?slug=${encodeURIComponent(slug)}&_embed`,
+    []
+  );
+  return Array.isArray(pages) ? pages[0] ?? null : null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Text helpers                                                                */
+/* -------------------------------------------------------------------------- */
+
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  hellip: '…',
+  mdash: '—',
+  ndash: '–',
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”',
+};
+
 export function decodeHtmlEntities(text: string): string {
   if (!text) return '';
   return text
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&nbsp;/g, ' ');
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&([a-z]+);/gi, (match, name) => NAMED_ENTITIES[name.toLowerCase()] ?? match);
+}
+
+/** Plain text from WordPress HTML, with markup, styles, and scripts removed. */
+export function stripHtml(html: string): string {
+  if (!html) return '';
+  return decodeHtmlEntities(
+    html
+      .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<[^>]*>/g, ' ')
+  )
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Truncates on a word boundary so excerpts do not end mid-word. */
+export function truncate(text: string, length = 160): string {
+  if (!text || text.length <= length) return text;
+  const cut = text.slice(0, length);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > length * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[.,;:\s]+$/, '')}…`;
 }
 
 /**
- * Truncate text to a specific length
+ * Summary text for an entry.
+ *
+ * Built from the body's paragraphs rather than the whole document: flattening
+ * everything runs a heading straight into the sentence after it, producing
+ * excerpts like "The Hard Problem Gets a Breakthrough Tool Why does the firing
+ * of neurons…". Paragraphs are joined only if the first one is too short to
+ * stand alone.
  */
-export function truncate(text: string, length: number = 150): string {
-  if (text.length <= length) return text;
-  return text.slice(0, length).trim() + '...';
+export function excerptFrom(html: string, length = 160): string {
+  if (!html) return '';
+
+  const paragraphs = Array.from(html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
+    .map((match) => stripHtml(match[1]))
+    .filter(Boolean);
+
+  if (!paragraphs.length) return truncate(stripHtml(html), length);
+
+  let text = paragraphs[0];
+  for (let i = 1; i < paragraphs.length && text.length < length * 0.6; i += 1) {
+    text += ` ${paragraphs[i]}`;
+  }
+
+  return truncate(text, length);
+}
+
+export function wordCount(html: string): number {
+  const text = stripHtml(html);
+  return text ? text.split(/\s+/).length : 0;
+}
+
+/** Reading time in whole minutes, at 200 words per minute. */
+export function readingTime(html: string): number {
+  return Math.max(1, Math.round(wordCount(html) / 200));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Media and timestamps                                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * ISO 8601 timestamp with an explicit UTC designator.
+ *
+ * WordPress returns `date`/`modified` as site-local time with no offset, which
+ * is ambiguous in structured data. The `_gmt` variants carry the same instant in
+ * UTC but still omit the `Z`.
+ */
+export function toIsoUtc(local: string, gmt?: string): string {
+  if (gmt) return gmt.endsWith('Z') ? gmt : `${gmt}Z`;
+  return local;
+}
+
+/** Publication and modification instants for an entry, in UTC. */
+export function timestamps(entry: { date: string; date_gmt?: string; modified?: string; modified_gmt?: string }) {
+  const published = toIsoUtc(entry.date, entry.date_gmt);
+  const modified = entry.modified ? toIsoUtc(entry.modified, entry.modified_gmt) : published;
+  return { published, modified };
 }
 
 /**
- * Get featured image URL from WordPress page/post
- * Falls back to first image in content if no featured image set
+ * Featured image for an entry, falling back to the first image in the body.
+ * Prefers the largest rendition WordPress generated.
  */
-export function getFeaturedImage(page: WordPressPage | WordPressPost): string | null {
-  // Try featured media first
-  if (page._embedded?.['wp:featuredmedia']?.[0]) {
-    const media = page._embedded['wp:featuredmedia'][0];
-    // Try different size options, fallback to source_url (important for webp)
-    const url = (media as any).media_details?.sizes?.full?.source_url
-      || (media as any).media_details?.sizes?.large?.source_url
-      || (media as any).media_details?.sizes?.medium?.source_url
-      || (media as any).source_url
-      || media.source_url;
-    if (url) {
-      return toRelativeUrl(url);
-    }
+export function getFeaturedImage(entry: WordPressEntity): string | null {
+  const media = entry._embedded?.['wp:featuredmedia']?.[0];
+  if (media) {
+    const sizes = media.media_details?.sizes;
+    const url =
+      sizes?.full?.source_url ||
+      sizes?.large?.source_url ||
+      sizes?.medium_large?.source_url ||
+      sizes?.medium?.source_url ||
+      media.source_url;
+    if (url) return toRelativeUrl(url);
   }
 
-  // Fallback: Extract first image from content HTML
-  if (page.content?.rendered) {
-    const imgMatch = page.content.rendered.match(/<img[^>]+src="([^">]+)"/);
-    if (imgMatch && imgMatch[1]) {
-      return toRelativeUrl(imgMatch[1]);
-    }
-  }
+  const inline = entry.content?.rendered?.match(/<img[^>]+src="([^">]+)"/);
+  return inline?.[1] ? toRelativeUrl(inline[1]) : null;
+}
 
-  return null;
+export function getFeaturedImageAlt(entry: WordPressEntity): string {
+  // WordPress returns alt text with entities intact; React escapes on output,
+  // so an undecoded `&#8217;` would be announced literally by a screen reader.
+  const alt = decodeHtmlEntities(entry._embedded?.['wp:featuredmedia']?.[0]?.alt_text ?? '').trim();
+  return alt || decodeHtmlEntities(stripHtml(entry.title.rendered));
 }

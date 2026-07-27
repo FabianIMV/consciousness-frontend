@@ -1,270 +1,126 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
-import { translateContent } from '@/lib/i18n';
 import ContactForm from '@/components/ContactForm';
+import JsonLd from '@/components/JsonLd';
+import SiteFooter from '@/components/SiteFooter';
+import SiteHeader from '@/components/SiteHeader';
+import { getDictionary } from '@/lib/dictionaries';
+import {
+  breadcrumbNode,
+  graph,
+  organizationNode,
+  webPageNode,
+  websiteNode,
+} from '@/lib/schema';
+import { DEFAULT_LOCALE, alternatesFor, isLocale, ogImageFor, type Locale } from '@/lib/site';
 
 export const revalidate = 3600;
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { lang: string };
-}): Promise<Metadata> {
-  const url = `https://consciousnessnetworks.com/${params.lang}/contact`;
+const PATH = '/contact';
+
+const DESCRIPTION: Record<Locale, string> = {
+  en: 'Contact Consciousness Networks about research collaboration, paper submissions, or questions on consciousness science and quantum cognition.',
+  es: 'Contacta con Consciousness Networks para colaborar en investigación, proponer artículos o resolver dudas sobre ciencia de la consciencia y cognición cuántica.',
+};
+
+export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
+  const locale = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+  const t = getDictionary(locale);
+
   return {
-    title: 'Contact — Consciousness Networks',
-    description: 'Write to us about research collaboration, paper submissions, or any questions related to consciousness science and quantum cognition.',
-    alternates: {
-      canonical: url,
-      languages: {
-        en: 'https://consciousnessnetworks.com/en/contact',
-        es: 'https://consciousnessnetworks.com/es/contact',
-      },
-    },
+    title: t.contact.title,
+    description: DESCRIPTION[locale],
+    alternates: alternatesFor(locale, PATH),
     openGraph: {
       type: 'website',
-      url,
-      title: 'Contact — Consciousness Networks',
-      description: 'Write to us about research collaboration, paper submissions, or any questions related to consciousness science and quantum cognition.',
+      url: alternatesFor(locale, PATH).canonical,
+      title: t.contact.title,
+      description: DESCRIPTION[locale],
+      images: ogImageFor(locale),
     },
   };
 }
 
-export default async function Contact({ params }: { params: { lang: string } }) {
-  const { lang } = params;
+export default function ContactPage({ params }: { params: { lang: string } }) {
+  const locale = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+  const t = getDictionary(locale);
 
-  const [
-    researchLabel,
-    papersLabel,
-    aboutLabel,
-    contactLabel,
-    heroTitle,
-    heroText,
-    collaborationTitle,
-    collaborationHeading,
-    collaborationText,
-    papersHeading,
-    papersText,
-    privacyNotice,
-    footerText,
-  ] = await Promise.all([
-    translateContent('Research', lang),
-    translateContent('Papers', lang),
-    translateContent('About', lang),
-    translateContent('Contact', lang),
-    translateContent('Get in Touch', lang),
-    translateContent('Questions about consciousness research, quantum cognition, or interested in collaborating? Write to us.', lang),
-    translateContent('Research & Collaboration', lang),
-    translateContent('Research collaboration', lang),
-    translateContent('Working on empirical or theoretical consciousness research? We welcome exchanges with other researchers and institutions.', lang),
-    translateContent('Paper submissions', lang),
-    translateContent('Know a paper that belongs in our reading list? Share it with us and we\'ll review it for inclusion.', lang),
-    translateContent('Your contact information is used solely to respond to your inquiry and is never shared with third parties.', lang),
-    translateContent(`© ${new Date().getFullYear()} Consciousness Networks. All rights reserved.`, lang),
+  const structuredData = graph([
+    organizationNode(),
+    websiteNode(locale),
+    webPageNode({
+      locale,
+      path: PATH,
+      name: t.contact.title,
+      description: DESCRIPTION[locale],
+      type: 'ContactPage',
+    }),
+    breadcrumbNode(locale, [
+      { name: t.nav.research, path: '/' },
+      { name: t.nav.contact, path: PATH },
+    ]),
   ]);
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'ContactPage',
-        name: 'Contact Consciousness Networks',
-        url: `https://consciousnessnetworks.com/${lang}/contact`,
-        publisher: {
-          '@type': 'Organization',
-          name: 'Consciousness Networks',
-          url: 'https://consciousnessnetworks.com',
-        },
-      },
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Research', item: `https://consciousnessnetworks.com/${lang}` },
-          { '@type': 'ListItem', position: 2, name: 'Contact', item: `https://consciousnessnetworks.com/${lang}/contact` },
-        ],
-      },
-    ],
-  };
-
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+    <div className="page">
+      <JsonLd data={structuredData} />
+      <SiteHeader locale={locale} active="contact" path={PATH} />
 
-      <header className="header-glass" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }}>
-        <div className="container" style={{
-          height: 'var(--header-height)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <Link href={`/${lang}`} className="glow-on-hover header-title" style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-xl)',
-            fontWeight: 'var(--font-bold)',
-            color: 'var(--text-primary)',
-            letterSpacing: 'var(--tracking-tight)',
-          }}>
-            Consciousness Networks
-          </Link>
-
-          <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)', alignItems: 'center' }}>
-            <Link href={`/${lang}`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>
-              {researchLabel}
-            </Link>
-            <Link href={`/${lang}/papers`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>
-              {papersLabel}
-            </Link>
-            <Link href={`/${lang}/about`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--text-secondary)' }}>
-              {aboutLabel}
-            </Link>
-            <Link href={`/${lang}/contact`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--primary-purple)' }}>
-              {contactLabel}
-            </Link>
-          </nav>
-
-          <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
-            <Link href={`/${lang}`} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{researchLabel}</Link>
-            <Link href={`/${lang}/papers`} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{papersLabel}</Link>
-            <Link href={`/${lang}/about`} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{aboutLabel}</Link>
-            <Link href={`/${lang}/contact`} style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--primary-purple)' }}>{contactLabel}</Link>
-          </nav>
-        </div>
-      </header>
-
-      <main style={{ paddingTop: 'var(--header-height)' }}>
-        <section style={{
-          padding: 'var(--spacing-16) 0 var(--spacing-10)',
-          background: 'var(--bg-gradient-subtle)',
-          borderBottom: '1px solid var(--border-light)',
-        }}>
-          <div className="container">
-            <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-              <p style={{
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--font-semibold)',
-                color: 'var(--primary-purple)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                marginBottom: 'var(--spacing-3)',
-              }}>
-                {contactLabel}
-              </p>
-              <h1 style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'clamp(2rem, 4vw, var(--text-4xl))',
-                fontWeight: 'var(--font-black)',
-                color: 'var(--text-primary)',
-                lineHeight: 'var(--leading-tight)',
-                marginBottom: 'var(--spacing-4)',
-              }}>
-                {heroTitle}
-              </h1>
-              <p style={{
-                fontSize: 'var(--text-lg)',
-                color: 'var(--text-secondary)',
-                lineHeight: 'var(--leading-relaxed)',
-              }}>
-                {heroText}
-              </p>
-            </div>
+      <div className="page__body">
+        <section className="page-hero">
+          <div className="container container--reading">
+            <p className="eyebrow page-hero__eyebrow">{t.contact.eyebrow}</p>
+            <h1 className="page-hero__title">{t.contact.title}</h1>
+            <p className="standfirst">{t.contact.subtitle}</p>
           </div>
         </section>
 
-        <section style={{ padding: 'var(--spacing-12) 0' }}>
-          <div className="container">
-            <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-              <ContactForm />
+        <main id="main" tabIndex={-1}>
+          <div
+            className="container container--reading"
+            style={{ paddingBlock: 'var(--spacing-12)' }}
+          >
+            <ContactForm locale={locale} />
 
-              <div style={{
+            <section
+              aria-labelledby="collaboration-heading"
+              style={{
                 marginTop: 'var(--spacing-12)',
                 paddingTop: 'var(--spacing-10)',
-                borderTop: '1px solid var(--border-light)',
-              }}>
-                <h3 style={{
-                  color: 'var(--text-tertiary)',
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 'var(--font-semibold)',
-                  marginBottom: 'var(--spacing-6)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}>{collaborationTitle}</h3>
+                borderTop: '1px solid var(--rule)',
+              }}
+            >
+              <h2
+                id="collaboration-heading"
+                className="section-heading"
+                style={{ marginBottom: 'var(--spacing-6)' }}
+              >
+                {t.contact.sectionTitle}
+              </h2>
 
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: 'var(--spacing-4)',
-                }}>
-                  <div style={{
-                    padding: 'var(--spacing-5)',
-                    borderLeft: '3px solid var(--primary-purple)',
-                    background: 'rgba(102, 126, 234, 0.04)',
-                  }}>
-                    <h4 style={{
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-sm)',
-                      fontWeight: 'var(--font-semibold)',
-                      marginBottom: 'var(--spacing-2)',
-                    }}>{collaborationHeading}</h4>
-                    <p style={{
-                      color: 'var(--text-secondary)',
-                      fontSize: 'var(--text-sm)',
-                      lineHeight: 'var(--leading-relaxed)',
-                      margin: 0,
-                    }}>
-                      {collaborationText}
-                    </p>
-                  </div>
+              <div className="panel-grid">
+                <div className="panel">
+                  <h3 className="panel__heading">{t.contact.collaborationHeading}</h3>
+                  <p className="panel__text">{t.contact.collaborationText}</p>
+                </div>
 
-                  <div style={{
-                    padding: 'var(--spacing-5)',
-                    borderLeft: '3px solid #764ba2',
-                    background: 'rgba(118, 75, 162, 0.04)',
-                  }}>
-                    <h4 style={{
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-sm)',
-                      fontWeight: 'var(--font-semibold)',
-                      marginBottom: 'var(--spacing-2)',
-                    }}>{papersHeading}</h4>
-                    <p style={{
-                      color: 'var(--text-secondary)',
-                      fontSize: 'var(--text-sm)',
-                      lineHeight: 'var(--leading-relaxed)',
-                      margin: 0,
-                    }}>
-                      {papersText}
-                    </p>
-                  </div>
+                <div className="panel">
+                  <h3 className="panel__heading">{t.contact.papersHeading}</h3>
+                  <p className="panel__text">{t.contact.papersText}</p>
                 </div>
               </div>
+            </section>
 
-              <p style={{
-                marginTop: 'var(--spacing-10)',
-                color: 'var(--text-tertiary)',
-                fontSize: 'var(--text-xs)',
-                lineHeight: 'var(--leading-relaxed)',
-                textAlign: 'center',
-              }}>
-                {privacyNotice}
-              </p>
-            </div>
+            <p
+              className="panel__text"
+              style={{ marginTop: 'var(--spacing-10)', color: 'var(--text-tertiary)' }}
+            >
+              {t.contact.privacy}
+            </p>
           </div>
-        </section>
-      </main>
+        </main>
+      </div>
 
-      <footer style={{
-        marginTop: 'var(--spacing-16)',
-        padding: 'var(--spacing-10) 0',
-        borderTop: '1px solid var(--border-light)',
-        background: 'var(--bg-secondary)',
-      }}>
-        <div className="container" style={{ textAlign: 'center' }}>
-          <p className="metadata">{footerText}</p>
-        </div>
-      </footer>
-    </>
+      <SiteFooter locale={locale} />
+    </div>
   );
 }

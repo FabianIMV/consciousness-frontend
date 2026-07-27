@@ -1,177 +1,237 @@
 /**
- * Typography Styles - Consciousness Networks
- * Medium.com inspired with spiritual enhancement
+ * Typography.
+ *
+ * Serif for anything that is read (headlines, article body), sans for anything
+ * that is operated (navigation, labels, metadata, forms). The split is what
+ * gives the pages an editorial rather than an interface feel.
  */
 
-/* Base Typography */
 body {
   font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   color: var(--text-primary);
+  background: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Headings */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
   font-weight: var(--font-bold);
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
   color: var(--text-primary);
-  margin-bottom: var(--spacing-4);
+  text-wrap: balance;
 }
 
 h1 {
-  font-size: var(--text-5xl);
-  font-weight: var(--font-black);
-  letter-spacing: var(--tracking-tight);
+  font-size: var(--text-4xl);
 }
 
 h2 {
-  font-size: var(--text-3xl);
-  font-weight: var(--font-bold);
+  font-size: var(--text-2xl);
 }
 
 h3 {
-  font-size: var(--text-2xl);
-  font-weight: var(--font-semibold);
+  font-size: var(--text-xl);
 }
 
 h4 {
-  font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
-}
-
-h5 {
   font-size: var(--text-lg);
-  font-weight: var(--font-medium);
 }
 
+h5,
 h6 {
   font-size: var(--text-base);
-  font-weight: var(--font-medium);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
 }
 
-/* Paragraphs */
 p {
-  margin-bottom: var(--spacing-6);
   line-height: var(--leading-relaxed);
 }
 
-/* Lead paragraph (intro text) */
-.lead {
-  font-size: var(--text-xl);
-  line-height: var(--leading-relaxed);
-  color: var(--text-secondary);
-  font-family: var(--font-serif);
-}
-
-/* Links */
 a {
-  color: var(--primary-purple);
+  color: var(--accent);
   text-decoration: none;
-  transition: color var(--transition-base);
+  transition: color var(--transition);
 }
 
 a:hover {
-  color: var(--deep-purple);
+  color: var(--accent-strong);
 }
 
-/* Lists */
-ul, ol {
-  margin-bottom: var(--spacing-6);
-  padding-left: var(--spacing-6);
+/* Eyebrow — the small uppercase label above a page title */
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
-li {
-  margin-bottom: var(--spacing-2);
-  line-height: var(--leading-relaxed);
-}
-
-/* Blockquotes */
-blockquote {
-  border-left: 4px solid var(--primary-purple);
-  padding-left: var(--spacing-6);
-  margin: var(--spacing-8) 0;
+/* Standfirst — the introductory paragraph under a page title */
+.standfirst {
   font-family: var(--font-serif);
-  font-size: var(--text-lg);
-  font-style: italic;
+  font-size: var(--text-xl);
+  line-height: var(--leading-relaxed);
   color: var(--text-secondary);
+  max-width: 38rem;
 }
 
-/* Code */
-code {
-  font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 0.9em;
-  background: var(--bg-tertiary);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--primary-purple);
+/* Dates, reading time, bylines */
+.metadata {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
-pre {
-  background: var(--bg-tertiary);
-  padding: var(--spacing-4);
-  border-radius: var(--border-radius);
-  overflow-x: auto;
-  margin-bottom: var(--spacing-6);
-}
+/* -------------------------------------------------------------------------- */
+/* Article body — also the scope for stylesheets that arrive with WordPress    */
+/* content, so every rule here has to survive being overridden.                */
+/* -------------------------------------------------------------------------- */
 
-pre code {
-  background: none;
-  padding: 0;
-}
-
-/* Article Content - Medium Style */
 .article-content {
   font-family: var(--font-serif);
   font-size: var(--text-lg);
   line-height: var(--leading-relaxed);
   color: var(--text-primary);
+  overflow-wrap: break-word;
 }
 
-.article-content p {
-  margin-bottom: var(--spacing-6);
+.article-content > * + * {
+  margin-top: var(--spacing-6);
 }
 
 .article-content h2,
-.article-content h3 {
-  margin-top: var(--spacing-10);
+.article-content h3,
+.article-content h4 {
+  margin-top: var(--spacing-12);
   margin-bottom: var(--spacing-4);
-  font-family: var(--font-display);
+}
+
+.article-content h2 {
+  font-size: var(--text-2xl);
+  padding-bottom: var(--spacing-3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.article-content h3 {
+  font-size: var(--text-xl);
+}
+
+.article-content ul,
+.article-content ol {
+  padding-left: var(--spacing-6);
+}
+
+.article-content li + li {
+  margin-top: var(--spacing-2);
+}
+
+.article-content li {
+  line-height: var(--leading-relaxed);
 }
 
 .article-content img {
+  display: block;
   max-width: 100%;
   height: auto;
-  border-radius: var(--border-radius-lg);
-  margin: var(--spacing-8) 0;
+  margin: var(--spacing-10) auto;
+  border: 1px solid var(--rule);
+}
+
+.article-content figure {
+  margin: var(--spacing-10) 0;
+}
+
+.article-content figcaption {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  text-align: center;
+  margin-top: var(--spacing-3);
 }
 
 .article-content a {
-  color: var(--primary-purple);
+  color: var(--accent);
   text-decoration: underline;
-  text-decoration-color: rgba(101, 40, 247, 0.3);
-  text-underline-offset: 2px;
-  transition: all var(--transition-base);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+  text-decoration-color: var(--rule-strong);
 }
 
 .article-content a:hover {
-  text-decoration-color: var(--primary-purple);
+  text-decoration-color: currentColor;
 }
 
-/* Metadata text (dates, author info) */
-.metadata {
+.article-content blockquote {
+  margin: var(--spacing-10) 0;
+  padding-left: var(--spacing-6);
+  border-left: 2px solid var(--rule-strong);
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.article-content blockquote p + p {
+  margin-top: var(--spacing-4);
+}
+
+.article-content code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-tertiary);
+  padding: 0.15em 0.35em;
+  border-radius: var(--radius-sm);
+}
+
+.article-content pre {
+  font-family: var(--font-mono);
   font-size: var(--text-sm);
-  color: var(--text-tertiary);
-  font-weight: var(--font-medium);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--rule);
+  padding: var(--spacing-4);
+  overflow-x: auto;
 }
 
-/* Small caps for special text */
-.small-caps {
-  font-variant: small-caps;
-  letter-spacing: var(--tracking-wide);
+.article-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.article-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  display: block;
+  overflow-x: auto;
+}
+
+.article-content th,
+.article-content td {
+  border: 1px solid var(--rule);
+  padding: var(--spacing-3);
+  text-align: left;
+}
+
+.article-content hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: var(--spacing-12) 0;
+}
+
+@media (max-width: 768px) {
+  .article-content {
+    font-size: var(--text-base);
+  }
 }
