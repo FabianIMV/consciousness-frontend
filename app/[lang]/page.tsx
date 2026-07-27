@@ -18,10 +18,10 @@ import {
   excerptFrom,
   getFeaturedImage,
   getFeaturedImageAlt,
+  getPosts,
   readingTime,
   stripHtml,
 } from '@/lib/wordpress';
-import { getPosts } from '@/lib/wordpress';
 
 export const revalidate = REVALIDATE_SECONDS;
 
