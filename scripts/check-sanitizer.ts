@@ -8,7 +8,7 @@
  */
 
 import { sanitizeContent } from '@/lib/sanitize';
-import { excerptFrom } from '@/lib/wordpress';
+import { excerptFrom, stripHtml } from '@/lib/wordpress';
 
 type Check = {
   name: string;
@@ -191,6 +191,22 @@ const excerptChecks: Array<{ name: string; input: string; expect: string }> = [
       '<p>.consciousness-post h1 { font-size: 2.4em; margin: 20px 0; } .consciousness-post .subtitle { color: #667eea; } As artificial intelligence advances, humanity faces a critical juncture.</p><p>The second real paragraph, which belongs in the excerpt.</p>',
     expect: 'The second real paragraph, which belongs in the excerpt.',
   },
+  {
+    // The second live bug: this article's orphaned CSS was not one clean
+    // block at the top but several, glued directly to the next selector with
+    // no separating space ("}.article-content"), and not reliably confined to
+    // a single <p> or <div> — this is the exact text a real excerpt showed.
+    name: 'excerptFrom drops several space-free CSS rules scattered through the body',
+    input:
+      '<p>.highlight-box strong { color: #ffd700; }.article-content .conclusion-highlight strong { color: #ffd700; }.article-content .consciousness-post strong { color: #4a90e2; }.article-content</p><p>The real opening paragraph, which belongs in the excerpt.</p>',
+    expect: 'The real opening paragraph, which belongs in the excerpt.',
+  },
+  {
+    name: 'excerptFrom drops orphaned CSS sitting as bare text with no wrapping tag at all',
+    input:
+      '.highlight-box strong { color: #ffd700; } .conclusion-highlight strong { color: #4a90e2; } <p>The real opening paragraph, which belongs in the excerpt.</p>',
+    expect: 'The real opening paragraph, which belongs in the excerpt.',
+  },
 ];
 
 for (const check of excerptChecks) {
@@ -205,7 +221,33 @@ for (const check of excerptChecks) {
   }
 }
 
-const total = checks.length + excerptChecks.length;
+const stripHtmlChecks: Array<{ name: string; input: string; expect: string }> = [
+  {
+    name: 'stripHtml drops space-free CSS rules regardless of surrounding tag',
+    input:
+      '<span>.highlight-box strong { color: #ffd700; }.article-content .conclusion-highlight strong { color: #ffd700; }.article-content .consciousness-post strong { color: #4a90e2; }.article-content</span> The real sentence.',
+    expect: 'The real sentence.',
+  },
+  {
+    name: 'stripHtml leaves a single quoted CSS rule alone (not two in a row)',
+    input: '<p>The stylesheet opens with body { margin: 0; padding: 0; } and not much else.</p>',
+    expect: 'The stylesheet opens with body { margin: 0; padding: 0; } and not much else.',
+  },
+];
+
+for (const check of stripHtmlChecks) {
+  const output = stripHtml(check.input);
+  if (output !== check.expect) {
+    failed += 1;
+    console.error(`FAIL  ${check.name}`);
+    console.error(`        expected: ${JSON.stringify(check.expect)}`);
+    console.error(`        actual:   ${JSON.stringify(output)}`);
+  } else {
+    console.log(`ok    ${check.name}`);
+  }
+}
+
+const total = checks.length + excerptChecks.length + stripHtmlChecks.length;
 
 if (failed) {
   console.error(`\n${failed} of ${total} checks failed.`);
