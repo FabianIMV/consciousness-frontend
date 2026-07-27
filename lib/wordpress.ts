@@ -9,6 +9,7 @@
  * clean fragment — see `sanitizeContent`.
  */
 
+import { sanitizeContent } from '@/lib/sanitize';
 import { looksLikeCss } from '@/lib/text';
 import { toRelativeUrl } from '@/lib/urls';
 
@@ -160,17 +161,27 @@ export function truncate(text: string, length = 160): string {
  * excerpts like "The Hard Problem Gets a Breakthrough Tool Why does the firing
  * of neurons…". Paragraphs are joined only if the first one is too short to
  * stand alone.
+ *
+ * Reads from `sanitizeContent`'s output rather than the raw WordPress HTML.
+ * The raw body is exactly as untrustworthy here as it is on the article page —
+ * a `<style>` tag can lose its wrapper, or its declarations can end up glued
+ * into the same `<p>` as real prose — and a lighter, parallel cleanup pass
+ * over the raw HTML does not catch every shape the real one does. Using the
+ * same sanitiser both places means the excerpt can never show text the
+ * article itself would have stripped.
  */
 export function excerptFrom(html: string, length = 160): string {
   if (!html) return '';
 
-  const paragraphs = Array.from(html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
+  const sanitized = sanitizeContent(html);
+
+  const paragraphs = Array.from(sanitized.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
     .map((match) => stripHtml(match[1]))
-    // A `<style>` block that lost its wrapper can survive as a bare-looking
-    // paragraph of CSS (see `sanitizeContent`); it must not become the excerpt.
+    // Defence in depth: catches anything CSS-shaped that survived sanitising
+    // outside a <p>/<div> the sanitiser watches for.
     .filter((text) => Boolean(text) && !looksLikeCss(text));
 
-  if (!paragraphs.length) return truncate(stripHtml(html), length);
+  if (!paragraphs.length) return truncate(stripHtml(sanitized), length);
 
   let text = paragraphs[0];
   for (let i = 1; i < paragraphs.length && text.length < length * 0.6; i += 1) {

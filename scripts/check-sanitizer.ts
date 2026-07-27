@@ -129,6 +129,21 @@ const checks: Check[] = [
     input: '<p>Consider this: the mind is not a machine.</p>',
     expect: ['<p>Consider this: the mind is not a machine.</p>'],
   },
+  {
+    // A blank line between the lost style tag and the article intro is not
+    // guaranteed; wpautop can glue both into one paragraph.
+    name: 'CSS glued into the same paragraph as real prose is still dropped',
+    input:
+      '<p>.consciousness-post h1 { font-size: 2.4em; margin: 20px 0; } .consciousness-post .subtitle { color: #667eea; } As artificial intelligence advances, humanity faces a critical juncture.</p><p>The second real paragraph.</p>',
+    reject: ['font-size', 'letter-spacing', '.consciousness-post'],
+  },
+  {
+    name: 'CSS wrapped in a div instead of a p is still dropped',
+    input:
+      '<div>.consciousness-post h1 { font-size: 2.4em; margin: 20px 0; } .consciousness-post .subtitle { color: #667eea; }</div><p>The real opening paragraph.</p>',
+    expect: ['<p>The real opening paragraph.</p>'],
+    reject: ['font-size', '.consciousness-post'],
+  },
 ];
 
 let failed = 0;
@@ -160,6 +175,21 @@ const excerptChecks: Array<{ name: string; input: string; expect: string }> = [
     input:
       '<p>.consciousness-post h1 { font-size: 2.4em; margin: 20px 0; color: #1a1a2e; font-weight: 700; } .consciousness-post .subtitle { font-size: 1.25em; color: #667eea; }</p><p>The real opening paragraph, which belongs in the excerpt.</p>',
     expect: 'The real opening paragraph, which belongs in the excerpt.',
+  },
+  {
+    // Reproduces the live homepage bug: excerptFrom used to run on the raw
+    // WordPress body, a separate and weaker pass than the one the article
+    // page renders through, so it missed shapes the article correctly hid.
+    name: 'excerptFrom skips a div-wrapped orphaned CSS block',
+    input:
+      '<div>.consciousness-post h1 { font-size: 2.4em; margin: 20px 0; } .consciousness-post .subtitle { color: #667eea; }</div><p>The real opening paragraph, which belongs in the excerpt.</p>',
+    expect: 'The real opening paragraph, which belongs in the excerpt.',
+  },
+  {
+    name: 'excerptFrom drops CSS glued into the same paragraph as real prose',
+    input:
+      '<p>.consciousness-post h1 { font-size: 2.4em; margin: 20px 0; } .consciousness-post .subtitle { color: #667eea; } As artificial intelligence advances, humanity faces a critical juncture.</p><p>The second real paragraph, which belongs in the excerpt.</p>',
+    expect: 'The second real paragraph, which belongs in the excerpt.',
   },
 ];
 
