@@ -144,6 +144,31 @@ const checks: Check[] = [
     expect: ['<p>The real opening paragraph.</p>'],
     reject: ['font-size', '.consciousness-post'],
   },
+  {
+    /*
+     * Regression for a severe self-inflicted bug: an exclusiveFilter keyed on
+     * frame.text matched the outer Elementor wrapper, because sanitize-html
+     * accumulates descendant text into that field. The whole article was
+     * deleted along with the stylesheet it contained.
+     */
+    name: 'an Elementor wrapper containing a stylesheet keeps its article',
+    input:
+      '<div data-elementor-type="wp-post"><style>.highlight-box strong { color: #ffd700; } .conclusion-highlight strong { color: #4a90e2; }</style><p>As artificial intelligence continues to advance, humanity faces a critical juncture.</p></div>',
+    expect: ['As artificial intelligence continues to advance', '.article-content .highlight-box'],
+  },
+  {
+    name: 'a wrapper with a stylesheet and no paragraphs keeps its text',
+    input:
+      '<div><style>.a { color: red; } .b { color: blue; }</style><div>Real body text that must survive.</div></div>',
+    expect: ['Real body text that must survive.'],
+  },
+  {
+    name: 'orphaned CSS glued to a sibling paragraph costs only the CSS',
+    input:
+      '<div><p>.highlight-box strong { color: #ffd700; }.article-content .conclusion-highlight strong { color: #ffd700; }.article-content</p><p>The real paragraph.</p></div>',
+    expect: ['The real paragraph.'],
+    reject: ['ffd700', 'highlight-box'],
+  },
 ];
 
 let failed = 0;
@@ -186,10 +211,14 @@ const excerptChecks: Array<{ name: string; input: string; expect: string }> = [
     expect: 'The real opening paragraph, which belongs in the excerpt.',
   },
   {
-    name: 'excerptFrom drops CSS glued into the same paragraph as real prose',
+    // Only the CSS is removed, not the sentence sharing its paragraph: the
+    // author's prose is kept and the short opener is joined with what follows,
+    // which is the normal excerpt behaviour for a short first paragraph.
+    name: 'excerptFrom drops CSS glued into a paragraph but keeps the prose beside it',
     input:
       '<p>.consciousness-post h1 { font-size: 2.4em; margin: 20px 0; } .consciousness-post .subtitle { color: #667eea; } As artificial intelligence advances, humanity faces a critical juncture.</p><p>The second real paragraph, which belongs in the excerpt.</p>',
-    expect: 'The second real paragraph, which belongs in the excerpt.',
+    expect:
+      'As artificial intelligence advances, humanity faces a critical juncture. The second real paragraph, which belongs in the excerpt.',
   },
   {
     // The second live bug: this article's orphaned CSS was not one clean
@@ -206,6 +235,19 @@ const excerptChecks: Array<{ name: string; input: string; expect: string }> = [
     input:
       '.highlight-box strong { color: #ffd700; } .conclusion-highlight strong { color: #4a90e2; } <p>The real opening paragraph, which belongs in the excerpt.</p>',
     expect: 'The real opening paragraph, which belongs in the excerpt.',
+  },
+  {
+    // The excerpt must never be empty because the body carried a stylesheet.
+    name: 'excerptFrom reads through an Elementor wrapper that contains a stylesheet',
+    input:
+      '<div data-elementor-type="wp-post"><style>.highlight-box strong { color: #ffd700; } .conclusion-highlight strong { color: #4a90e2; }</style><p>As artificial intelligence continues to advance, humanity faces a critical juncture.</p></div>',
+    expect: 'As artificial intelligence continues to advance, humanity faces a critical juncture.',
+  },
+  {
+    name: 'excerptFrom falls back to non-paragraph text when the body has no <p>',
+    input:
+      '<div><style>.a { color: red; } .b { color: blue; }</style><div>Real body text that must survive.</div></div>',
+    expect: 'Real body text that must survive.',
   },
 ];
 
