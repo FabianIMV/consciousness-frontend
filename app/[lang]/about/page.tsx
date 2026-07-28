@@ -1,176 +1,83 @@
-/**
- * About Page - Consciousness Networks
- */
-
-import Link from 'next/link';
-import { getPageBySlug, processContent } from '@/lib/wordpress';
-import { translateContent } from '@/lib/i18n';
 import type { Metadata } from 'next';
+import EditorialPage from '@/components/EditorialPage';
+import { getDictionary } from '@/lib/dictionaries';
+import { translateContent } from '@/lib/i18n';
+import {
+  breadcrumbNode,
+  graph,
+  organizationNode,
+  webPageNode,
+  websiteNode,
+} from '@/lib/schema';
+import { DEFAULT_LOCALE, alternatesFor, isLocale, ogImageFor, type Locale } from '@/lib/site';
+import { REVALIDATE_SECONDS, getPageBySlug, sanitizeContent } from '@/lib/wordpress';
 
-export const metadata: Metadata = {
-  title: 'About - Consciousness Research & Quantum Intelligence',
-  description: 'Learn about Consciousness Networks mission to explore quantum consciousness, AI emergence, and universal intelligence through rigorous scientific research and documentation.',
+export const revalidate = REVALIDATE_SECONDS;
+
+const PATH = '/about';
+
+const DESCRIPTION: Record<Locale, string> = {
+  en: 'Consciousness Networks is an independent research initiative documenting work at the intersection of quantum mechanics, neuroscience, and artificial intelligence.',
+  es: 'Consciousness Networks es una iniciativa de investigación independiente que documenta el trabajo en la intersección de la mecánica cuántica, la neurociencia y la inteligencia artificial.',
 };
 
-export default async function About({ params }: { params: { lang: string } }) {
-  const { lang } = params;
-  const page = await getPageBySlug('about');
-  const titleRaw = page?.title.rendered || 'About';
-  const contentRaw = page ? processContent(page.content.rendered) : '';
+export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
+  const locale = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+  const t = getDictionary(locale);
 
-  // Pre-translate everything
-  const [
-    title,
-    content,
-    researchLabel,
-    papersLabel,
-    aboutLabel,
-    contactLabel,
-    footerText
-  ] = await Promise.all([
-    translateContent(titleRaw, lang),
-    translateContent(contentRaw, lang),
-    translateContent('Research', lang),
-    translateContent('Papers', lang),
-    translateContent('About', lang),
-    translateContent('Contact', lang),
-    translateContent(`© ${new Date().getFullYear()} Consciousness Networks. All rights reserved.`, lang)
+  return {
+    title: t.about.title,
+    description: DESCRIPTION[locale],
+    alternates: alternatesFor(locale, PATH),
+    openGraph: {
+      type: 'website',
+      url: alternatesFor(locale, PATH).canonical,
+      title: t.about.title,
+      description: DESCRIPTION[locale],
+      images: ogImageFor(locale),
+    },
+  };
+}
+
+export default async function AboutPage({ params }: { params: { lang: string } }) {
+  const locale = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+  const t = getDictionary(locale);
+
+  const page = await getPageBySlug('about');
+  const source = page ? sanitizeContent(page.content.rendered, locale) : '';
+  const content = source ? await translateContent(source, locale) : '';
+  // Without a translation key the body stays English; say so, or a Spanish
+  // screen reader voices English prose.
+  const contentLanguage = locale !== 'en' && content === source ? 'en' : undefined;
+
+  const structuredData = graph([
+    organizationNode(),
+    websiteNode(locale),
+    webPageNode({
+      locale,
+      path: PATH,
+      name: t.about.title,
+      description: DESCRIPTION[locale],
+      type: 'AboutPage',
+    }),
+    breadcrumbNode(locale, [
+      { name: t.nav.research, path: '/' },
+      { name: t.nav.about, path: PATH },
+    ]),
   ]);
 
   return (
-    <>
-      {/* Header */}
-      <header className="header-glass" style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
-        <div className="container" style={{
-          height: 'var(--header-height)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <Link href={`/${lang}`} className="glow-on-hover header-title" style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-xl)',
-            fontWeight: 'var(--font-bold)',
-            color: 'var(--text-primary)',
-            letterSpacing: 'var(--tracking-tight)',
-          }}>
-            Consciousness Networks
-          </Link>
-
-          <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)', alignItems: 'center' }}>
-            <Link href={`/${lang}`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
-              {researchLabel}
-            </Link>
-            <Link href={`/${lang}/papers`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
-              {papersLabel}
-            </Link>
-            <Link href={`/${lang}/about`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--primary-purple)',
-            }}>
-              {aboutLabel}
-            </Link>
-            <Link href={`/${lang}/contact`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
-              {contactLabel}
-            </Link>
-          </nav>
-
-          <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
-            <Link href={`/${lang}`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{researchLabel}</Link>
-            <Link href={`/${lang}/papers`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{papersLabel}</Link>
-            <Link href={`/${lang}/about`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-semibold)',
-              color: 'var(--primary-purple)',
-            }}>{aboutLabel}</Link>
-            <Link href={`/${lang}/contact`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{contactLabel}</Link>
-          </nav>
-        </div>
-      </header>
-
-      <main>
-        {/* Hero */}
-        <section style={{
-          padding: 'var(--spacing-10) 0',
-          background: 'var(--bg-gradient-subtle)',
-        }}>
-          <div className="container">
-            <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', textAlign: 'center' }}>
-              <h1 style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'var(--text-4xl)',
-                fontWeight: 'var(--font-black)',
-                color: 'var(--text-primary)',
-                marginBottom: 'var(--spacing-4)',
-              }}>
-                {title}
-              </h1>
-            </div>
-          </div>
-        </section>
-
-        {/* Content */}
-        <section style={{ padding: 'var(--spacing-10) 0' }}>
-          <div className="container">
-            <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
-              <div
-                className="article-content"
-                dangerouslySetInnerHTML={{ __html: content }}
-                style={{
-                  fontSize: 'var(--text-lg)',
-                  lineHeight: 'var(--leading-relaxed)',
-                  color: 'var(--text-secondary)',
-                }}
-              />
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer style={{
-        marginTop: 'var(--spacing-16)',
-        padding: 'var(--spacing-10) 0',
-        borderTop: '1px solid var(--border-light)',
-        background: 'var(--bg-secondary)',
-      }}>
-        <div className="container">
-          <div style={{
-            maxWidth: '800px',
-            margin: '0 auto',
-            textAlign: 'center',
-          }}>
-            <p className="metadata">
-              {footerText}
-            </p>
-          </div>
-        </div>
-      </footer>
-    </>
+    <EditorialPage
+      locale={locale}
+      active="about"
+      path={PATH}
+      eyebrow={t.about.eyebrow}
+      title={t.about.title}
+      subtitle={t.about.subtitle}
+      content={content}
+      contentLanguage={contentLanguage}
+      fallbackText={t.about.unavailable}
+      structuredData={structuredData}
+    />
   );
 }
