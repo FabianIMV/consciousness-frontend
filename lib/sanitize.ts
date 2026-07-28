@@ -21,7 +21,7 @@
 import postcss, { type ChildNode, type Root } from 'postcss';
 import sanitizeHtml from 'sanitize-html';
 import { DEFAULT_LOCALE, localePath, type Locale } from '@/lib/site';
-import { looksLikeCss } from '@/lib/text';
+import { stripCssArtifacts } from '@/lib/text';
 import { toRelativeUrl, isWordPressUrl } from '@/lib/urls';
 
 /** Class applied to the element that receives WordPress HTML. */
@@ -267,14 +267,53 @@ function buildOptions(locale: Locale): sanitizeHtml.IOptions {
         return { tagName, attribs: next };
       },
     },
-    // A `<style>` tag that lost its wrapper leaves bare CSS text behind, which
-    // WordPress's auto-formatter then wraps in an ordinary paragraph or div —
-    // indistinguishable by markup from real prose. It is dropped outright
-    // rather than re-scoped, since the selector it belonged to is gone and
-    // showing it as text would put a wall of CSS declarations on the page.
-    exclusiveFilter: (frame) =>
-      (frame.tag === 'p' || frame.tag === 'div') && looksLikeCss(frame.text),
+    /*
+     * Orphaned CSS is handled by `stripCssFromTextNodes` below, not by an
+     * `exclusiveFilter` here. A filter keyed on `frame.text` cannot work:
+     * sanitize-html accumulates the text of every descendant into that field,
+     * so an Elementor post wrapped in one outer `<div>` that also contains a
+     * `<style>` block matched as a whole, and the entire article was deleted
+     * with it. Removing the offending text is the bounded operation; removing
+     * the element that happens to contain it is not.
+     */
   };
+}
+
+/**
+ * Removes CSS-shaped runs from text nodes, leaving markup untouched.
+ *
+ * `<style>` elements have already been lifted out by the caller, so any
+ * remaining CSS in the text is orphaned — a style tag that lost its wrapper
+ * before WordPress stored the post. Operating on text nodes rather than whole
+ * elements means a stray rule glued to a real sentence costs that rule and
+ * nothing else.
+ */
+function stripCssFromTextNodes(html: string): string {
+  let out = '';
+  let index = 0;
+
+  while (index < html.length) {
+    const tagStart = html.indexOf('<', index);
+
+    if (tagStart === -1) {
+      out += stripCssArtifacts(html.slice(index));
+      break;
+    }
+
+    out += stripCssArtifacts(html.slice(index, tagStart));
+
+    const tagEnd = html.indexOf('>', tagStart);
+    if (tagEnd === -1) {
+      // Malformed trailing fragment; emit verbatim rather than guess.
+      out += html.slice(tagStart);
+      break;
+    }
+
+    out += html.slice(tagStart, tagEnd + 1);
+    index = tagEnd + 1;
+  }
+
+  return out;
 }
 
 /**
@@ -289,10 +328,12 @@ export function sanitizeContent(html: string, locale: Locale = DEFAULT_LOCALE): 
   // The parser has normalised every end tag, so the stylesheets can now be
   // separated with a simple match.
   const styles: string[] = [];
-  const body = cleaned.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css: string) => {
+  const withoutStyles = cleaned.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css: string) => {
     styles.push(css);
     return '';
   });
+
+  const body = stripCssFromTextNodes(withoutStyles);
 
   const scoped = styles
     .map((css) => scopeCss(css))
