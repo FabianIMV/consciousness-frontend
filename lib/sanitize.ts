@@ -130,6 +130,27 @@ function scopeNodes(container: Root | ChildNode): void {
   });
 }
 
+/**
+ * Removes the paragraph tags WordPress's auto-formatter leaves inside a
+ * `<style>` block.
+ *
+ * `wpautop` runs over the stored post body as plain text, without regard for
+ * which element it is inside, so a stylesheet written with a blank line between
+ * rules comes back with `</p>\n<p>` wedged into the gaps. postcss then reads
+ * `</p>\n<p>.consciousness-post h1` as the next rule's selector and scoping
+ * turns it into `.article-content </p><p>.consciousness-post h1` — a selector
+ * that matches nothing, so the stylesheet silently stops applying, and a
+ * `<style>` element whose text now contains literal paragraph tags. Anything
+ * that later looks for `<p>` in the sanitised markup finds those and reads the
+ * CSS between them as prose, which is how a stylesheet ends up as an excerpt.
+ *
+ * Only `<p>` and `<br>` are removed — they are what `wpautop` inserts, and
+ * neither can appear in valid CSS outside a string.
+ */
+function stripAutoParagraphs(css: string): string {
+  return css.replace(/<\/?(?:p|br)\b[^>]*>/gi, '');
+}
+
 /** Prefixes every selector in a stylesheet with the content scope. */
 export function scopeCss(css: string): string {
   try {
@@ -329,7 +350,7 @@ export function sanitizeContent(html: string, locale: Locale = DEFAULT_LOCALE): 
   // separated with a simple match.
   const styles: string[] = [];
   const withoutStyles = cleaned.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css: string) => {
-    styles.push(css);
+    styles.push(stripAutoParagraphs(css));
     return '';
   });
 

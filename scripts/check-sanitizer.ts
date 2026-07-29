@@ -70,6 +70,24 @@ const checks: Check[] = [
     expect: ['<h2 class="t">', '.article-content .header h2'],
   },
   {
+    /*
+     * From post 361, verbatim. `wpautop` wedges `</p>\n<p>` between the rules of
+     * a `<style>` block, and postcss then reads `</p>\n<p>.consciousness-post h1`
+     * as the next selector — so scoping produced
+     * `.article-content </p><p>.consciousness-post h1`, which matches nothing.
+     * The article's own stylesheet was dead on the page as a result, and the
+     * emitted `<style>` carried 40 literal paragraph tags for the excerpt
+     * builder to trip over.
+     */
+    name: "wpautop's paragraph tags inside a stylesheet do not become selectors",
+    input:
+      '<style>\n.consciousness-post {\n  color: #2c2c2c;\n}</p>\n<p>.consciousness-post h1 {\n  font-size: 2.4em;\n}</style><p>a</p>',
+    expect: ['.article-content .consciousness-post', '.article-content .consciousness-post h2'],
+    // The body's own `<p>a</p>` is legitimate, so only the mangled selector
+    // shapes are rejected.
+    reject: ['<p>.consciousness-post', '.article-content </p>', '</p>\n<p>'],
+  },
+  {
     name: 'a data URI is not split on its semicolons',
     input: '<style>.a{background:url("data:image/svg+xml;base64,AAA");font-size:18px}</style>',
     expect: ['font-size:18px', 'base64,AAA'],
@@ -264,6 +282,36 @@ const excerptChecks: Array<{ name: string; input: string; expect: string }> = [
     input:
       '.highlight-box strong { color: #ffd700; } .conclusion-highlight strong { color: #4a90e2; } <p>The real opening paragraph, which belongs in the excerpt.</p>',
     expect: 'The real opening paragraph, which belongs in the excerpt.',
+  },
+  {
+    /*
+     * The fourth live bug, and the one every earlier round missed because it
+     * was reasoned about rather than fetched. Verbatim from post 361
+     * ("the-soul-crisis-…"), whose body opens with a `<style>` whose CSS has
+     * been through `wpautop`: the formatter wedged `</p>\n<p>` into the blank
+     * line between every rule, one rule per paragraph.
+     *
+     * Both existing guards miss that shape for structural reasons, not for want
+     * of a better pattern. `stripCssArtifacts` needs two rules in a row and each
+     * paragraph holds exactly one; `looksLikeCss` needs two declarations and
+     * `.highlight-box strong { color: #ffd700; }` has one. The rules that
+     * cleared both bars are precisely the single-declaration ones, which is why
+     * the excerpt live on the home page was made of nothing else.
+     */
+    name: 'excerptFrom ignores paragraph tags wpautop left inside a stylesheet',
+    input:
+      '<style>\n.consciousness-post {\n  max-width: 900px;\n  margin: 0 auto;\n  color: #2c2c2c;\n}</p>\n<p>.highlight-box strong {\n  color: #ffd700;\n}</p>\n<p>.conclusion-highlight strong {\n  color: #ffd700;\n}</p>\n<p>.consciousness-post strong {\n  color: #4a90e2;\n}</style>\n<p>Three converging events at Anthropic reveal the deepest questions humanity has ever asked.</p>',
+    expect: 'Three converging events at Anthropic reveal the deepest questions humanity has ever asked.',
+  },
+  {
+    // The same stylesheet with its wrapper lost entirely, so wpautop's
+    // paragraphs land in the body instead of inside a <style>. One rule per
+    // paragraph again, and the last one carries the dangling selector that the
+    // scoping pass leaves behind.
+    name: 'excerptFrom drops a stylesheet wpautop split one rule per paragraph',
+    input:
+      '<p>.highlight-box strong { color: #ffd700; }</p><p>.conclusion-highlight strong { color: #ffd700; }</p><p>.consciousness-post strong { color: #4a90e2; }.article-content</p><p>Three converging events at Anthropic reveal the deepest questions humanity has ever asked.</p>',
+    expect: 'Three converging events at Anthropic reveal the deepest questions humanity has ever asked.',
   },
 ];
 
