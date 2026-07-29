@@ -177,13 +177,19 @@ export function excerptFrom(html: string, length = 160): string {
 
   const sanitized = sanitizeContent(html);
 
-  const paragraphs = Array.from(sanitized.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
+  // `sanitizeContent` keeps a scoped `<style>` element, and its contents are
+  // CSS, not prose. Drop stylesheets before looking for paragraphs: searching
+  // the whole document for `<p>` finds any that WordPress's auto-formatter left
+  // sitting inside the stylesheet, and reads the rules between them as text.
+  const prose = sanitized.replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '');
+
+  const paragraphs = Array.from(prose.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
     .map((match) => stripHtml(match[1]))
     // Defence in depth: catches anything CSS-shaped that survived sanitising
     // outside a <p>/<div> the sanitiser watches for.
     .filter((text) => Boolean(text) && !looksLikeCss(text));
 
-  if (!paragraphs.length) return truncate(stripHtml(sanitized), length);
+  if (!paragraphs.length) return truncate(stripHtml(prose), length);
 
   let text = paragraphs[0];
   for (let i = 1; i < paragraphs.length && text.length < length * 0.6; i += 1) {

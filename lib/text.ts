@@ -52,6 +52,30 @@ const CSS_RULE = '(?=[^{}]*[.#][\\w-])[.#a-zA-Z][\\w.,:()%#/\\-\\s]{0,120}\\{[^{
  */
 const DANGLING_SELECTOR = '[.#][\\w-]+\\s*';
 
+/** One or more consecutive rules, plus any selector left dangling after them. */
+const CSS_RUN = new RegExp(`(?:${CSS_RULE})+(?:${DANGLING_SELECTOR})?`, 'gi');
+
+/**
+ * True when a block of text is nothing but CSS rules — no prose around them.
+ *
+ * This is the case the two-rule bar in `stripCssArtifacts` and the
+ * two-declaration bar in `looksLikeCss` both structurally miss. WordPress's
+ * auto-formatter splits an orphaned stylesheet on its blank lines, so each
+ * paragraph ends up holding exactly one rule; a rule with a single declaration
+ * (`.highlight-box strong { color: #ffd700; }`) is then under both thresholds
+ * at once and survives as an excerpt.
+ *
+ * Requiring the *whole* block to be CSS is what makes accepting a single rule
+ * safe. The false positive the other two guard against is a paragraph that
+ * quotes a rule while discussing it, and such a paragraph has prose around the
+ * quote, so it fails this test and is kept.
+ */
+export function isEntirelyCss(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed.includes('{')) return false;
+  return trimmed.replace(CSS_RUN, '').trim() === '';
+}
+
 /**
  * Removes runs of two or more consecutive CSS-rule-shaped blocks from plain
  * text, wherever they sit.
@@ -69,5 +93,6 @@ const DANGLING_SELECTOR = '[.#][\\w-]+\\s*';
  */
 export function stripCssArtifacts(text: string): string {
   if (!text) return text;
+  if (isEntirelyCss(text)) return ' ';
   return text.replace(new RegExp(`(?:${CSS_RULE}){2,}(?:${DANGLING_SELECTOR})?`, 'gi'), ' ');
 }
