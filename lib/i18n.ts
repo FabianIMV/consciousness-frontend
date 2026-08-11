@@ -1,54 +1,98 @@
+/**
+ * Machine translation for editorial content coming from WordPress.
+ *
+ * Interface copy lives in `lib/dictionaries.ts` and is never sent here — this
+ * module only handles article and page bodies, which are authored in English in
+ * WordPress and have no hand-written Spanish counterpart. If the model is not
+ * configured or the call fails, the original English body is returned so the
+ * page still renders.
+ */
+
+import { createHash } from 'crypto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/site';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+const TIMEOUT_MS = Number(process.env.TRANSLATION_TIMEOUT_MS || 20_000);
 
-// Basic in-memory cache for translations to avoid redundant API calls
-// In production, this could be Redis or similar
-const translationCache: Record<string, string> = {};
+/** Bodies above this size are left untranslated rather than risking a truncated response. */
+const MAX_INPUT_CHARS = 60_000;
 
-export async function translateContent(html: string, targetLang: string): Promise<string> {
-    if (!html || targetLang === 'en') return html;
+const LANGUAGE_NAMES: Record<Locale, string> = {
+  en: 'English',
+  es: 'Spanish',
+};
 
-    const cacheKey = `${targetLang}:${html.substring(0, 100)}:${html.length}`;
-    if (translationCache[cacheKey]) {
-        return translationCache[cacheKey];
-    }
+/**
+ * Process-local cache. Pages are revalidated on a timer, so this only has to
+ * survive between renders within one server instance; it keeps a burst of
+ * requests for the same article from issuing one model call each.
+ */
+const cache = new Map<string, string>();
+const CACHE_LIMIT = 200;
 
-    try {
-        if (!process.env.GEMINI_API_KEY) {
-            console.error('CRITICAL: GEMINI_API_KEY is missing from environment variables.');
-            return html;
-        }
+function cacheKey(html: string, locale: Locale): string {
+  return `${locale}:${createHash('sha1').update(html).digest('hex')}`;
+}
 
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+function remember(key: string, value: string): void {
+  if (cache.size >= CACHE_LIMIT) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
+  cache.set(key, value);
+}
 
-        const prompt = `
-      Translate the following HTML content accurately from English to ${targetLang === 'es' ? 'Spanish' : 'English'}.
-      
-      CRITICAL RULES:
-      1. MAINTAIN ALL HTML TAGS, ATTRIBUTES, and STRUCTURE.
-      2. ONLY translate the visible text content.
-      3. DO NOT translate technical terms, product names, or code if present.
-      4. Ensure the tone is scientific, professional, and sophisticated.
-      5. Return ONLY the translated HTML, no explanations.
+/** Models occasionally wrap output in a markdown fence; unwrap it. */
+function unwrapCodeFence(text: string): string {
+  const fenced = text.match(/^\s*```(?:html)?\s*\n([\s\S]*?)\n?\s*```\s*$/i);
+  return fenced ? fenced[1] : text;
+}
 
-      CONTENT:
-      ${html}
-    `;
+export async function translateContent(html: string, locale: Locale | string): Promise<string> {
+  if (!html) return html;
+  if (locale === DEFAULT_LOCALE || !(locale in LANGUAGE_NAMES)) return html;
+  if (html.length > MAX_INPUT_CHARS) return html;
 
-        console.log(`[i18n] Translating content to ${targetLang}... (Length: ${html.length})`);
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const translatedHtml = response.text();
+  const target = locale as Locale;
+  const key = cacheKey(html, target);
+  const hit = cache.get(key);
+  if (hit) return hit;
 
-        console.log(`[i18n] Translation success! (Translated length: ${translatedHtml.length})`);
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return html;
 
-        // Store in cache
-        translationCache[cacheKey] = translatedHtml;
+  try {
+    const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: MODEL });
 
-        return translatedHtml;
-    } catch (error) {
-        console.error(`[i18n] Server-side translation error for ${targetLang}:`, error);
-        return html; // Fallback to original content on error
-    }
+    const prompt = [
+      `Translate the HTML below from English into ${LANGUAGE_NAMES[target]}.`,
+      '',
+      'Rules:',
+      '- Preserve every tag, attribute, and the document structure exactly.',
+      '- Translate visible text only. Leave URLs, code, and proper nouns untouched.',
+      '- Keep scientific terminology precise; match the register of an academic review.',
+      '- Return only the translated HTML, with no commentary and no code fence.',
+      '',
+      'HTML:',
+      html,
+    ].join('\n');
+
+    const result = await model.generateContent(
+      { contents: [{ role: 'user', parts: [{ text: prompt }] }] },
+      { timeout: TIMEOUT_MS }
+    );
+
+    const translated = unwrapCodeFence(result.response.text()).trim();
+
+    // A response far shorter than the input means the model summarised or
+    // refused; serving the English original is better than serving a fragment.
+    if (!translated || translated.length < html.length * 0.4) return html;
+
+    remember(key, translated);
+    return translated;
+  } catch (error) {
+    console.error(`[i18n] translation to ${target} failed:`, error);
+    return html;
+  }
 }

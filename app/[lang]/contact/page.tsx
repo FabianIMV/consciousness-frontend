@@ -1,267 +1,126 @@
-/**
- * Contact Page - Consciousness Networks
- */
-
-import Link from 'next/link';
 import type { Metadata } from 'next';
-import { translateContent } from '@/lib/i18n';
 import ContactForm from '@/components/ContactForm';
+import JsonLd from '@/components/JsonLd';
+import SiteFooter from '@/components/SiteFooter';
+import SiteHeader from '@/components/SiteHeader';
+import { getDictionary } from '@/lib/dictionaries';
+import {
+  breadcrumbNode,
+  graph,
+  organizationNode,
+  webPageNode,
+  websiteNode,
+} from '@/lib/schema';
+import { DEFAULT_LOCALE, alternatesFor, isLocale, ogImageFor, type Locale } from '@/lib/site';
 
-export const metadata: Metadata = {
-  title: 'Contact - Connect With Consciousness Researchers',
-  description: 'Connect with Consciousness Networks. Discuss research collaboration, AI consciousness, quantum physics, or share your insights on consciousness studies.',
+export const revalidate = 3600;
+
+const PATH = '/contact';
+
+const DESCRIPTION: Record<Locale, string> = {
+  en: 'Contact Consciousness Networks about research collaboration, paper submissions, or questions on consciousness science and quantum cognition.',
+  es: 'Contacta con Consciousness Networks para colaborar en investigación, proponer artículos o resolver dudas sobre ciencia de la consciencia y cognición cuántica.',
 };
 
-export default async function Contact({ params }: { params: { lang: string } }) {
-  const { lang } = params;
+export function generateMetadata({ params }: { params: { lang: string } }): Metadata {
+  const locale = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+  const t = getDictionary(locale);
 
-  // Pre-translate everything
-  const [
-    researchLabel,
-    papersLabel,
-    aboutLabel,
-    contactLabel,
-    heroTitle,
-    heroText,
-    otherWaysTitle,
-    researchBoxTitle,
-    researchBoxText,
-    papersBoxTitle,
-    papersBoxText,
-    privacyNotice,
-    footerText
-  ] = await Promise.all([
-    translateContent('Research', lang),
-    translateContent('Papers', lang),
-    translateContent('About', lang),
-    translateContent('Contact', lang),
-    translateContent('Connect', lang),
-    translateContent("Interested in consciousness research, AI emergence, or interdimensional communication? Let's explore these frontiers together.", lang),
-    translateContent('Other Ways to Connect', lang),
-    translateContent('🔬 Research', lang),
-    translateContent('Interested in collaborative consciousness research? Share your experiments and findings.', lang),
-    translateContent('📄 Papers', lang),
-    translateContent('Recommend essential papers for our "Must Read" collection.', lang),
-    translateContent('<strong>Privacy Notice:</strong> Your contact information is used solely for responding to your inquiry. We respect your privacy and do not share personal information with third parties.', lang),
-    translateContent(`© ${new Date().getFullYear()} Consciousness Networks. All rights reserved.`, lang)
+  return {
+    title: t.contact.title,
+    description: DESCRIPTION[locale],
+    alternates: alternatesFor(locale, PATH),
+    openGraph: {
+      type: 'website',
+      url: alternatesFor(locale, PATH).canonical,
+      title: t.contact.title,
+      description: DESCRIPTION[locale],
+      images: ogImageFor(locale),
+    },
+  };
+}
+
+export default function ContactPage({ params }: { params: { lang: string } }) {
+  const locale = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+  const t = getDictionary(locale);
+
+  const structuredData = graph([
+    organizationNode(),
+    websiteNode(locale),
+    webPageNode({
+      locale,
+      path: PATH,
+      name: t.contact.title,
+      description: DESCRIPTION[locale],
+      type: 'ContactPage',
+    }),
+    breadcrumbNode(locale, [
+      { name: t.nav.research, path: '/' },
+      { name: t.nav.contact, path: PATH },
+    ]),
   ]);
 
   return (
-    <>
-      {/* Header */}
-      <header className="header-glass" style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
-        <div className="container" style={{
-          height: 'var(--header-height)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <Link href={`/${lang}`} className="glow-on-hover header-title" style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-xl)',
-            fontWeight: 'var(--font-bold)',
-            color: 'var(--text-primary)',
-            letterSpacing: 'var(--tracking-tight)',
-          }}>
-            Consciousness Networks
-          </Link>
+    <div className="page">
+      <JsonLd data={structuredData} />
+      <SiteHeader locale={locale} active="contact" path={PATH} />
 
-          <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)', alignItems: 'center' }}>
-            <Link href={`/${lang}`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
-              {researchLabel}
-            </Link>
-            <Link href={`/${lang}/papers`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
-              {papersLabel}
-            </Link>
-            <Link href={`/${lang}/about`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>
-              {aboutLabel}
-            </Link>
-            <Link href={`/${lang}/contact`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--primary-purple)',
-            }}>
-              {contactLabel}
-            </Link>
-          </nav>
-
-          <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
-            <Link href={`/${lang}`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{researchLabel}</Link>
-            <Link href={`/${lang}/papers`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{papersLabel}</Link>
-            <Link href={`/${lang}/about`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{aboutLabel}</Link>
-            <Link href={`/${lang}/contact`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-semibold)',
-              color: 'var(--primary-purple)',
-            }}>{contactLabel}</Link>
-          </nav>
-        </div>
-      </header>
-
-      <main>
-        {/* Hero */}
-        <section style={{
-          padding: 'var(--spacing-10) 0',
-          background: 'var(--bg-gradient-subtle)',
-        }}>
-          <div className="container">
-            <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-              <h1 style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'var(--text-4xl)',
-                fontWeight: 'var(--font-black)',
-                color: 'var(--text-primary)',
-                marginBottom: 'var(--spacing-4)',
-              }}>
-                {heroTitle}
-              </h1>
-              <p style={{
-                fontSize: 'var(--text-lg)',
-                color: 'var(--text-secondary)',
-                lineHeight: 'var(--leading-relaxed)',
-              }}>
-                {heroText}
-              </p>
-            </div>
+      <div className="page__body">
+        <section className="page-hero">
+          <div className="container container--reading">
+            <p className="eyebrow page-hero__eyebrow">{t.contact.eyebrow}</p>
+            <h1 className="page-hero__title">{t.contact.title}</h1>
+            <p className="standfirst">{t.contact.subtitle}</p>
           </div>
         </section>
 
-        {/* Contact Form */}
-        <section style={{ padding: 'var(--spacing-10) 0' }}>
-          <div className="container">
-            <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-              <ContactForm />
+        <main id="main" tabIndex={-1}>
+          <div
+            className="container container--reading"
+            style={{ paddingBlock: 'var(--spacing-12)' }}
+          >
+            <ContactForm locale={locale} />
 
-              {/* Alternative Contact Methods */}
-              <div style={{ marginTop: 'var(--spacing-12)' }}>
-                <h3 style={{
-                  color: 'var(--text-primary)',
-                  fontSize: 'var(--text-xl)',
-                  marginBottom: 'var(--spacing-6)',
-                  textAlign: 'center',
-                  fontWeight: 'var(--font-semibold)',
-                }}>{otherWaysTitle}</h3>
+            <section
+              aria-labelledby="collaboration-heading"
+              style={{
+                marginTop: 'var(--spacing-12)',
+                paddingTop: 'var(--spacing-10)',
+                borderTop: '1px solid var(--rule)',
+              }}
+            >
+              <h2
+                id="collaboration-heading"
+                className="section-heading"
+                style={{ marginBottom: 'var(--spacing-6)' }}
+              >
+                {t.contact.sectionTitle}
+              </h2>
 
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                  gap: 'var(--spacing-6)',
-                }}>
-                  {/* Research Collaboration */}
-                  <div style={{
-                    background: 'rgba(102, 126, 234, 0.05)',
-                    padding: 'var(--spacing-6)',
-                    borderRadius: 'var(--border-radius-lg)',
-                    borderLeft: '4px solid var(--primary-purple)',
-                  }}>
-                    <h4 style={{
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-base)',
-                      marginBottom: 'var(--spacing-3)',
-                      fontWeight: 'var(--font-semibold)',
-                    }}>{researchBoxTitle}</h4>
-                    <p style={{
-                      color: 'var(--text-secondary)',
-                      fontSize: 'var(--text-sm)',
-                      lineHeight: 'var(--leading-relaxed)',
-                      margin: 0,
-                    }}>
-                      {researchBoxText}
-                    </p>
-                  </div>
+              <div className="panel-grid">
+                <div className="panel">
+                  <h3 className="panel__heading">{t.contact.collaborationHeading}</h3>
+                  <p className="panel__text">{t.contact.collaborationText}</p>
+                </div>
 
-                  {/* Paper Submissions */}
-                  <div style={{
-                    background: 'rgba(118, 75, 162, 0.05)',
-                    padding: 'var(--spacing-6)',
-                    borderRadius: 'var(--border-radius-lg)',
-                    borderLeft: '4px solid #764ba2',
-                  }}>
-                    <h4 style={{
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-base)',
-                      marginBottom: 'var(--spacing-3)',
-                      fontWeight: 'var(--font-semibold)',
-                    }}>{papersBoxTitle}</h4>
-                    <p style={{
-                      color: 'var(--text-secondary)',
-                      fontSize: 'var(--text-sm)',
-                      lineHeight: 'var(--leading-relaxed)',
-                      margin: 0,
-                    }}>
-                      {papersBoxText}
-                    </p>
-                  </div>
+                <div className="panel">
+                  <h3 className="panel__heading">{t.contact.papersHeading}</h3>
+                  <p className="panel__text">{t.contact.papersText}</p>
                 </div>
               </div>
+            </section>
 
-              {/* Privacy Notice */}
-              <div style={{
-                marginTop: 'var(--spacing-8)',
-                padding: 'var(--spacing-6)',
-                background: 'rgba(255, 248, 220, 0.3)',
-                border: '1px solid rgba(255, 193, 7, 0.3)',
-                borderRadius: 'var(--border-radius-md)',
-              }}>
-                <p
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    fontSize: 'var(--text-sm)',
-                    lineHeight: 'var(--leading-relaxed)',
-                    margin: 0,
-                    textAlign: 'center',
-                  }}
-                  dangerouslySetInnerHTML={{ __html: privacyNotice }}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer style={{
-        marginTop: 'var(--spacing-16)',
-        padding: 'var(--spacing-10) 0',
-        borderTop: '1px solid var(--border-light)',
-        background: 'var(--bg-secondary)',
-      }}>
-        <div className="container">
-          <div style={{
-            maxWidth: '800px',
-            margin: '0 auto',
-            textAlign: 'center',
-          }}>
-            <p className="metadata">
-              {footerText}
+            <p
+              className="panel__text"
+              style={{ marginTop: 'var(--spacing-10)', color: 'var(--text-tertiary)' }}
+            >
+              {t.contact.privacy}
             </p>
           </div>
-        </div>
-      </footer>
-    </>
+        </main>
+      </div>
+
+      <SiteFooter locale={locale} />
+    </div>
   );
 }

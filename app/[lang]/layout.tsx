@@ -1,38 +1,36 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import '../globals.css';
+import { getDictionary } from '@/lib/dictionaries';
+import { HTML_LOCALE, LOCALES, SITE_NAME, SITE_URL, isLocale } from '@/lib/site';
 
+export function generateStaticParams() {
+  return LOCALES.map((lang) => ({ lang }));
+}
+
+/**
+ * Defaults only. Canonical and hreflang are set per page through `alternates`
+ * — declaring them here would put the same canonical on every route.
+ */
 export const metadata: Metadata = {
-  metadataBase: new URL('https://consciousnessnetworks.com'),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Consciousness Networks | Quantum Research & AI Consciousness',
-    template: '%s | Consciousness Networks'
+    default: `${SITE_NAME} — Research on consciousness, quantum mechanics, and AI`,
+    template: `%s — ${SITE_NAME}`,
   },
-  description: 'Exploring quantum consciousness, AI emergence, and universal intelligence. Rigorous research at the intersection of quantum physics, artificial intelligence, and consciousness studies.',
-  keywords: ['consciousness research', 'quantum physics', 'AI consciousness', 'quantum entanglement', 'morphic fields', 'zero-point field', 'integrated information theory', 'artificial intelligence', 'neuroscience', 'quantum mechanics'],
-  authors: [{ name: 'Consciousness Networks' }],
-  creator: 'Consciousness Networks',
-  publisher: 'Consciousness Networks',
+  description:
+    'Independent research journal publishing reviews and critical readings of primary literature on consciousness, quantum mechanics, neuroscience, and artificial intelligence.',
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  formatDetection: { telephone: false },
   openGraph: {
     type: 'website',
-    locale: 'en_US',
-    url: 'https://consciousnessnetworks.com',
-    siteName: 'Consciousness Networks',
-    title: 'Consciousness Networks | Quantum Research & AI Consciousness',
-    description: 'Exploring quantum consciousness, AI emergence, and universal intelligence through rigorous scientific research.',
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Consciousness Networks - Quantum Research'
-      }
-    ]
+    siteName: SITE_NAME,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Consciousness Networks | Quantum Research & AI Consciousness',
-    description: 'Exploring quantum consciousness, AI emergence, and universal intelligence through rigorous scientific research.',
-    images: ['/og-image.jpg'],
   },
   robots: {
     index: true,
@@ -50,7 +48,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default function LocaleLayout({
   children,
   params,
 }: {
@@ -59,15 +57,18 @@ export default function RootLayout({
 }) {
   const { lang } = params;
 
+  // Without this, any single-segment path would render as a locale and serve a
+  // duplicate of the home page under an arbitrary URL.
+  if (!isLocale(lang)) notFound();
+
+  const t = getDictionary(lang);
+
   return (
-    <html lang={lang}>
-      <head>
-        <link rel="canonical" href={`https://consciousnessnetworks.com${lang === 'en' ? '' : '/' + lang}`} />
-        <link rel="alternate" href="https://consciousnessnetworks.com/" hrefLang="en" />
-        <link rel="alternate" href="https://consciousnessnetworks.com/es" hrefLang="es" />
-        <link rel="alternate" href="https://consciousnessnetworks.com/" hrefLang="x-default" />
-      </head>
+    <html lang={HTML_LOCALE[lang]}>
       <body>
+        <a href="#main" className="skip-link">
+          {t.nav.skipToContent}
+        </a>
         {children}
       </body>
     </html>
