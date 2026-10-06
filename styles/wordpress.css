@@ -141,7 +141,8 @@
   margin-block: 2em;
 }
 
-.article-content [class*='-grid'] > * {
+/* `.grid-card` too: one post closes its grid one card early. */
+.article-content :is([class*='-grid'] > *, .grid-card) {
   margin: 0;
   padding-top: var(--spacing-3);
   border-top: 1px solid var(--text-primary);
@@ -149,7 +150,7 @@
   line-height: var(--leading-normal);
 }
 
-.article-content [class*='-grid'] > * :where(h3, h4) {
+.article-content :is([class*='-grid'] > *, .grid-card) :where(h3, h4) {
   margin-top: 0;
   font-size: var(--text-md);
   font-weight: var(--font-semibold);
