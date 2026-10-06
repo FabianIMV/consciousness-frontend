@@ -33,7 +33,6 @@
     "autoprefixer": "^10",
     "eslint": "^8",
     "eslint-config-next": "14",
-    "tailwindcss": "^3",
     "tsx": "^4.23.1",
     "typescript": "^5"
   }

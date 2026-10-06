@@ -1,13 +1,14 @@
 /**
  * Regression checks for `sanitizeContent`.
  *
- * Every case here is an input that previously escaped the content scope, was
- * silently dropped, or landed in the page unchanged. Run with:
+ * Every case here is an input that previously leaked author styling or
+ * stylesheet text onto the page, was silently dropped, or arrived damaged by
+ * pasting (hard wraps, lost headings, a repeated title). Run with:
  *
  *   npm run check:sanitizer
  */
 
-import { sanitizeContent } from '@/lib/sanitize';
+import { isSameTitle, sanitizeContent } from '@/lib/sanitize';
 import { excerptFrom, stripHtml } from '@/lib/wordpress';
 
 type Check = {
@@ -21,25 +22,23 @@ type Check = {
 
 const checks: Check[] = [
   {
-    name: 'a statement at-rule does not let the next rule escape the scope',
-    input: '<style>@charset "UTF-8";:root{--x:1}.container{width:100%}</style><p>a</p>',
-    expect: ['.article-content{--x:1}', '.article-content .container'],
-    reject: ['@charset', '\n:root{', '}:root{'],
-  },
-  {
-    name: 'a brace inside a string does not swallow the following rule',
-    input: '<style>.a{content:"}"}.b{color:blue}</style><p>a</p>',
-    expect: ['.article-content .a', '.article-content .b'],
-  },
-  {
-    name: 'a comma inside :is() is not treated as a selector separator',
-    input: '<style>.card:is(.a, .b){color:red}</style><p>a</p>',
-    expect: ['.article-content .card:is(.a, .b)'],
+    // Author stylesheets are discarded, not scoped: they are where the violet
+    // gradients, gold bold text, and drop shadows came from.
+    name: 'an embedded stylesheet is removed with its text',
+    input: '<style>@charset "UTF-8";:root{--x:1}.highlight-box{background:linear-gradient(#667eea,#764ba2)}</style><p>a</p>',
+    expect: ['<p>a</p>'],
+    reject: ['<style', '667eea', ':root', '@charset'],
   },
   {
     name: 'an end tag with trailing whitespace is still recognised',
     input: '<style>body{background:lime}</style ><p>a</p>',
-    reject: ['background:lime', 'background: lime'],
+    reject: ['background:lime', 'background: lime', '<style'],
+  },
+  {
+    name: 'inline styles are removed',
+    input: '<p style="color:#667eea;font-size:2em">a</p>',
+    expect: ['<p>a</p>'],
+    reject: ['style=', '667eea'],
   },
   {
     name: 'a script with a whitespace end tag is removed',
@@ -65,45 +64,6 @@ const checks: Check[] = [
     reject: ['SEO TITLE'],
   },
   {
-    name: 'a demoted h1 keeps its styling',
-    input: '<h1 class="t">T</h1><style>.header h1{color:red}</style>',
-    expect: ['<h2 class="t">', '.article-content .header h2'],
-  },
-  {
-    /*
-     * From post 361, verbatim. `wpautop` wedges `</p>\n<p>` between the rules of
-     * a `<style>` block, and postcss then reads `</p>\n<p>.consciousness-post h1`
-     * as the next selector — so scoping produced
-     * `.article-content </p><p>.consciousness-post h1`, which matches nothing.
-     * The article's own stylesheet was dead on the page as a result, and the
-     * emitted `<style>` carried 40 literal paragraph tags for the excerpt
-     * builder to trip over.
-     */
-    name: "wpautop's paragraph tags inside a stylesheet do not become selectors",
-    input:
-      '<style>\n.consciousness-post {\n  color: #2c2c2c;\n}</p>\n<p>.consciousness-post h1 {\n  font-size: 2.4em;\n}</style><p>a</p>',
-    expect: ['.article-content .consciousness-post', '.article-content .consciousness-post h2'],
-    // The body's own `<p>a</p>` is legitimate, so only the mangled selector
-    // shapes are rejected.
-    reject: ['<p>.consciousness-post', '.article-content </p>', '</p>\n<p>'],
-  },
-  {
-    name: 'a data URI is not split on its semicolons',
-    input: '<style>.a{background:url("data:image/svg+xml;base64,AAA");font-size:18px}</style>',
-    expect: ['font-size:18px', 'base64,AAA'],
-  },
-  {
-    name: 'a qualified body selector still loses its page colours',
-    input: '<style>body:not(.x){background:white;color:black}</style><p>a</p>',
-    reject: ['background:white', 'color:black'],
-  },
-  {
-    name: 'keyframes are left unscoped so the animation still resolves',
-    input: '<style>@keyframes spin{from{transform:rotate(0)}}.a{color:red}</style>',
-    expect: ['@keyframes spin', '.article-content .a'],
-    reject: ['.article-content @keyframes'],
-  },
-  {
     name: 'an inline SVG survives and can still be named',
     input: '<svg aria-label="Chart of phi"><desc>Phi by region</desc><circle cx="1" cy="1" r="1"/></svg>',
     expect: ['aria-label="Chart of phi"', '<desc>Phi by region</desc>'],
@@ -124,13 +84,6 @@ const checks: Check[] = [
     input: '<!DOCTYPE html><html><head><meta charset="utf-8"><title>T</title></head><body><p>a</p></body></html>',
     expect: ['<p>a</p>'],
     reject: ['<!DOCTYPE', '<html', '<head', '<body', 'T</'],
-  },
-  {
-    name: 'a stylesheet inside a pasted document is kept and scoped',
-    input:
-      '<!DOCTYPE html><html><head><style>body{margin:0}.container{max-width:900px}</style></head><body><p>a</p></body></html>',
-    expect: ['.article-content{margin:0}', '.article-content .container', 'class="wp-document"'],
-    reject: ['<head', '\\nbody{'],
   },
   {
     // The published shape: a `<style>` tag lost its wrapper, and WordPress's
@@ -172,13 +125,84 @@ const checks: Check[] = [
     name: 'an Elementor wrapper containing a stylesheet keeps its article',
     input:
       '<div data-elementor-type="wp-post"><style>.highlight-box strong { color: #ffd700; } .conclusion-highlight strong { color: #4a90e2; }</style><p>As artificial intelligence continues to advance, humanity faces a critical juncture.</p></div>',
-    expect: ['As artificial intelligence continues to advance', '.article-content .highlight-box'],
+    expect: ['As artificial intelligence continues to advance'],
+    reject: ['highlight-box', 'ffd700'],
   },
   {
     name: 'a wrapper with a stylesheet and no paragraphs keeps its text',
     input:
       '<div><style>.a { color: red; } .b { color: blue; }</style><div>Real body text that must survive.</div></div>',
     expect: ['Real body text that must survive.'],
+  },
+  {
+    name: 'emoji used as icons are removed, typographic symbols are not',
+    input: '<p>📚 More papers coming soon</p><div>🧠</div><p>© 2025 Authors™ — see → <em>Φ</em></p>',
+    expect: ['<p>More papers coming soon</p>', '© 2025 Authors™ — see → <em>Φ</em>'],
+    reject: ['📚', '🧠'],
+  },
+  {
+    // From "beyond-the-observer": source wrapped at a fixed width, which
+    // wpautop turned into a <br> at the end of every line.
+    name: 'a hard-wrapped paragraph is joined into one line',
+    input: '<p>The frontier between quantum physics and consciousness has become one of the most fascinating territories in<br />\ncontemporary science.</p>',
+    expect: ['territories in contemporary science.</p>'],
+    reject: ['<br'],
+  },
+  {
+    name: 'a break after a complete sentence and before a new one is kept',
+    input: '<p>Anthropic committed to two practices:<br />\n<strong>First,</strong> preserving weights.<br />\n<strong>Second,</strong> exit interviews.</p>',
+    expect: ['practices:<br /><strong>First,', 'weights.<br /><strong>Second,'],
+  },
+  {
+    name: 'a hard-wrapped list item is joined into one line',
+    input: '<ol><li><strong>Thinking</strong> creates loops that can influence quantum<br />\n  probabilities</li></ol>',
+    expect: ['influence quantum probabilities</li>'],
+  },
+  {
+    name: 'a stack of breaks before the first word is removed',
+    input: '<header><br />\n<br />\n<br />\n  Quantum Consciousness<br />\n  December 2025</header>',
+    expect: ['Quantum Consciousness<br />'],
+    reject: ['<br />\n<br />', '<header><br'],
+  },
+  {
+    name: 'empty paragraphs left by stripped comments are removed',
+    input: '<p>  <br />\n  <br /> </p><p>&nbsp;</p><p>Real text.</p>',
+    expect: ['<p>Real text.</p>'],
+    reject: ['<p> ', '<p>&nbsp;'],
+  },
+  {
+    // From "ai-consciousness-a-bridge": a section title in a styled <div>
+    // that lost its tag, leaving it as the first line of the next paragraph.
+    name: 'a title-case line glued to the top of a paragraph becomes a heading',
+    input: '<p>Philosophical Foundations<br />\nThe Hindu concept of Atman and Brahman provides a framework.</p>',
+    expect: ['<h3>Philosophical Foundations</h3><p>The Hindu concept'],
+  },
+  {
+    name: 'a lone title-case paragraph before prose becomes a heading',
+    input: '<p><br />\n  The Evidence<br />\n</p>\n<p>The evidence is mounting from several sources.</p>',
+    expect: ['<h3>The Evidence</h3>'],
+  },
+  {
+    name: 'a lone label that does not introduce prose stays a paragraph',
+    input: '<p>Trinity College Dublin</p><p>Active Research</p><h4>Allen Institute</h4>',
+    expect: ['<p>Active Research</p>'],
+    reject: ['<h3>Active Research'],
+  },
+  {
+    name: 'a sentence is never promoted to a heading',
+    input: '<p>The Mind Is Not a Machine.<br />It never was.</p>',
+    reject: ['<h3>'],
+  },
+  {
+    name: 'a symbol-only divider becomes a rule',
+    input: '<p>One.</p><p>∞</p><p>Two.</p>',
+    expect: ['<p>One.</p><hr /><p>Two.</p>'],
+  },
+  {
+    name: 'a decorative divider in a div becomes a rule',
+    input: '<p>One.</p><div class="section-divider">◆ ◆ ◆</div><p>Two.</p>',
+    expect: ['<p>One.</p><hr /><p>Two.</p>'],
+    reject: ['◆'],
   },
   {
     name: 'orphaned CSS glued to a sibling paragraph costs only the CSS',
@@ -353,7 +377,56 @@ for (const check of stripHtmlChecks) {
   }
 }
 
-const total = checks.length + excerptChecks.length + stripHtmlChecks.length;
+const titleChecks: Array<{ name: string; input: string; title: string; expectDropped: boolean }> = [
+  {
+    name: 'a leading heading that repeats the title is dropped',
+    input: '<article><h1>Beyond the Observer: Scientific Evidence</h1><p>Body.</p></article>',
+    title: 'Beyond the Observer: Scientific Evidence',
+    expectDropped: true,
+  },
+  {
+    name: 'an image before the repeated title does not protect it',
+    input: '<p><img src="/a.jpg" alt="" /></p><h2>The Soul Crisis</h2><p>Body.</p>',
+    title: 'The Soul Crisis',
+    expectDropped: true,
+  },
+  {
+    // "Evidence of X: 2025 Update" against the post title "X: 2025 Update".
+    name: 'a leading heading that is a near-complete version of the title is dropped',
+    input: '<h1>Evidence of Quantum-Entangled Higher States of Consciousness: 2025 Research Update</h1><p>Body.</p>',
+    title: 'Quantum-Entangled Higher States of Consciousness: 2025 Research Update',
+    expectDropped: true,
+  },
+  {
+    name: 'a first section heading that differs from the title is kept',
+    input: '<p><img src="/a.jpg" alt="" /></p><h2>The Hard Problem Gets a Tool</h2><p>Body.</p>',
+    title: 'Transcranial Focused Ultrasound: MIT’s Tool to Map Consciousness',
+    expectDropped: false,
+  },
+  {
+    name: 'a heading after the first paragraph is never treated as the title',
+    input: '<p>Intro.</p><h2>The Soul Crisis</h2>',
+    title: 'The Soul Crisis',
+    expectDropped: false,
+  },
+];
+
+for (const check of titleChecks) {
+  const output = sanitizeContent(check.input, 'en', {
+    dropLeadingHeading: (text) => isSameTitle(text, check.title),
+  });
+  const dropped = !/<h2\b/i.test(output);
+  if (dropped !== check.expectDropped) {
+    failed += 1;
+    console.error(`FAIL  ${check.name}`);
+    console.error(`        output: ${output}`);
+  } else {
+    console.log(`ok    ${check.name}`);
+  }
+}
+
+const total =
+  checks.length + excerptChecks.length + stripHtmlChecks.length + titleChecks.length;
 
 if (failed) {
   console.error(`\n${failed} of ${total} checks failed.`);

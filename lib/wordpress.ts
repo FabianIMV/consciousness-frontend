@@ -14,7 +14,7 @@ import { looksLikeCss, stripCssArtifacts } from '@/lib/text';
 import { toRelativeUrl } from '@/lib/urls';
 
 export { toRelativeUrl } from '@/lib/urls';
-export { WP_CONTENT_CLASS, sanitizeContent } from '@/lib/sanitize';
+export { WP_CONTENT_CLASS, isSameTitle, sanitizeContent } from '@/lib/sanitize';
 
 const WP_API_URL =
   process.env.WORDPRESS_API_URL || 'http://wp.consciousnessnetworks.com/wp-json/wp/v2';
@@ -175,13 +175,9 @@ export function truncate(text: string, length = 160): string {
 export function excerptFrom(html: string, length = 160): string {
   if (!html) return '';
 
-  const sanitized = sanitizeContent(html);
-
-  // `sanitizeContent` keeps a scoped `<style>` element, and its contents are
-  // CSS, not prose. Drop stylesheets before looking for paragraphs: searching
-  // the whole document for `<p>` finds any that WordPress's auto-formatter left
-  // sitting inside the stylesheet, and reads the rules between them as text.
-  const prose = sanitized.replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '');
+  // The sanitiser has already discarded stylesheets and promoted headings that
+  // had lost their tags, so every remaining `<p>` is prose.
+  const prose = sanitizeContent(html);
 
   const paragraphs = Array.from(prose.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
     .map((match) => stripHtml(match[1]))
@@ -235,8 +231,15 @@ export function timestamps(entry: { date: string; date_gmt?: string; modified?: 
 /**
  * Featured image for an entry, falling back to the first image in the body.
  * Prefers the largest rendition WordPress generated.
+ *
+ * Pass `fromBody: false` where the body is rendered on the same page: the
+ * fallback image is already in it, and showing it above the headline as well
+ * printed it twice.
  */
-export function getFeaturedImage(entry: WordPressEntity): string | null {
+export function getFeaturedImage(
+  entry: WordPressEntity,
+  { fromBody = true }: { fromBody?: boolean } = {}
+): string | null {
   const media = entry._embedded?.['wp:featuredmedia']?.[0];
   if (media) {
     const sizes = media.media_details?.sizes;
@@ -248,6 +251,8 @@ export function getFeaturedImage(entry: WordPressEntity): string | null {
       media.source_url;
     if (url) return toRelativeUrl(url);
   }
+
+  if (!fromBody) return null;
 
   const inline = entry.content?.rendered?.match(/<img[^>]+src="([^">]+)"/);
   return inline?.[1] ? toRelativeUrl(inline[1]) : null;

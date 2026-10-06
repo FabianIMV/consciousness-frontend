@@ -79,23 +79,13 @@ export default function ContactForm({ locale }: { locale: Locale }) {
       {/* Always mounted so assistive tech is watching before a message lands. */}
       <div aria-live="polite" aria-atomic="true">
         {status === 'success' && (
-          <p
-            ref={noticeRef}
-            tabIndex={-1}
-            className="notice notice--success"
-            style={{ marginBottom: 'var(--spacing-6)' }}
-          >
+          <p ref={noticeRef} tabIndex={-1} className="notice notice--success">
             {t.success}
           </p>
         )}
 
         {status === 'error' && (
-          <p
-            ref={noticeRef}
-            tabIndex={-1}
-            className="notice notice--error"
-            style={{ marginBottom: 'var(--spacing-6)' }}
-          >
+          <p ref={noticeRef} tabIndex={-1} className="notice notice--error">
             {t.error} <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
           </p>
         )}
@@ -114,7 +104,6 @@ export default function ContactForm({ locale }: { locale: Locale }) {
             autoComplete="name"
             required
             maxLength={120}
-            placeholder={t.namePlaceholder}
             value={values.name}
             onChange={handleChange}
           />
@@ -132,7 +121,6 @@ export default function ContactForm({ locale }: { locale: Locale }) {
             autoComplete="email"
             required
             maxLength={200}
-            placeholder={t.emailPlaceholder}
             value={values.email}
             onChange={handleChange}
           />
@@ -170,7 +158,6 @@ export default function ContactForm({ locale }: { locale: Locale }) {
             required
             rows={8}
             maxLength={5000}
-            placeholder={t.messagePlaceholder}
             value={values.message}
             onChange={handleChange}
           />
@@ -179,7 +166,7 @@ export default function ContactForm({ locale }: { locale: Locale }) {
         <div>
           {/* aria-disabled rather than disabled: a disabled button loses focus
               and drops out of the tab order mid-interaction. */}
-          <button type="submit" className="btn btn--primary" aria-disabled={sending}>
+          <button type="submit" className="btn" aria-disabled={sending}>
             {sending ? `${t.sending}…` : t.submit}
           </button>
         </div>

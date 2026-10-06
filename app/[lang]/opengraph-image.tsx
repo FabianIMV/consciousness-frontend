@@ -23,48 +23,55 @@ export default function OpengraphImage({ params }: { params: { lang: string } })
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          background: '#ffffff',
-          padding: '72px',
-          borderTop: '16px solid #263f73',
+          background: '#fbfaf7',
+          padding: '72px 80px',
         }}
       >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <svg width="56" height="56" viewBox="0 0 32 32">
+            <g fill="none" stroke="#1b1a17" strokeWidth="1.3">
+              <circle cx="16" cy="16" r="13.2" />
+              <path d="M16 7.6 10.2 13.4 12.8 22.4h6.4l2.6-9z" />
+              <path d="M10.2 13.4h11.6M16 7.6v14.8" />
+            </g>
+            <g fill="#a3301c">
+              <circle cx="16" cy="7.6" r="1.9" />
+              <circle cx="10.2" cy="13.4" r="1.9" />
+              <circle cx="21.8" cy="13.4" r="1.9" />
+              <circle cx="12.8" cy="22.4" r="1.9" />
+              <circle cx="19.2" cy="22.4" r="1.9" />
+            </g>
+          </svg>
+          <div style={{ fontSize: 34, color: '#1b1a17' }}>{SITE_NAME}</div>
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div
             style={{
-              fontSize: 26,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: '#767d88',
-            }}
-          >
-            {t.home.eyebrow}
-          </div>
-
-          <div
-            style={{
-              marginTop: 32,
-              fontSize: 88,
-              lineHeight: 1.05,
-              fontWeight: 700,
-              color: '#14161a',
-              maxWidth: 940,
+              fontSize: 96,
+              lineHeight: 1.04,
+              letterSpacing: '-0.03em',
+              color: '#1b1a17',
+              maxWidth: 900,
             }}
           >
             {t.home.title}
           </div>
-        </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderTop: '2px solid #e3e3df',
-            paddingTop: 32,
-          }}
-        >
-          <div style={{ fontSize: 34, fontWeight: 700, color: '#14161a' }}>{SITE_NAME}</div>
-          <div style={{ fontSize: 26, color: '#767d88' }}>consciousnessnetworks.com</div>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginTop: 48,
+              paddingTop: 24,
+              borderTop: '2px solid #1b1a17',
+              fontSize: 26,
+              color: '#635f56',
+            }}
+          >
+            <div>{t.footer.description}</div>
+            <div style={{ color: '#a3301c' }}>consciousnessnetworks.com</div>
+          </div>
         </div>
       </div>
     ),

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getDictionary } from '@/lib/dictionaries';
-import { DEFAULT_LOCALE, LOCALES, localePath, type Locale } from '@/lib/site';
+import { DEFAULT_LOCALE, LOCALES, SITE_NAME, localePath, type Locale } from '@/lib/site';
 
 export type NavKey = 'research' | 'papers' | 'about' | 'contact';
 
@@ -10,6 +10,26 @@ const NAV: Array<{ key: NavKey; path: string }> = [
   { key: 'about', path: '/about' },
   { key: 'contact', path: '/contact' },
 ];
+
+/** The network mark from `app/icon.svg`, drawn in the current ink with red nodes. */
+function Mark() {
+  return (
+    <svg className="masthead__mark" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+      <g fill="none" stroke="currentColor" strokeWidth="1.3">
+        <circle cx="16" cy="16" r="13.2" />
+        <path d="M16 7.6 10.2 13.4 12.8 22.4h6.4l2.6-9z" />
+        <path d="M10.2 13.4h11.6M16 7.6v14.8" />
+      </g>
+      <g className="masthead__nodes">
+        <circle cx="16" cy="7.6" r="1.9" />
+        <circle cx="10.2" cy="13.4" r="1.9" />
+        <circle cx="21.8" cy="13.4" r="1.9" />
+        <circle cx="12.8" cy="22.4" r="1.9" />
+        <circle cx="19.2" cy="22.4" r="1.9" />
+      </g>
+    </svg>
+  );
+}
 
 /**
  * @param active  Navigation entry to highlight.
@@ -37,7 +57,8 @@ export default function SiteHeader({
     <header className="site-header">
       <div className="container site-header__inner">
         <Link href={localePath(locale, '/')} className="masthead">
-          Consciousness Networks
+          <Mark />
+          <span>{SITE_NAME}</span>
         </Link>
 
         <nav className="site-nav" aria-label={t.nav.primary}>
@@ -54,7 +75,12 @@ export default function SiteHeader({
             </Link>
           ))}
 
-          <Link href={localePath(otherLocale, path)} className="lang-switch" hrefLang={otherLocale}>
+          <Link
+            href={localePath(otherLocale, path)}
+            className="lang-switch"
+            hrefLang={otherLocale}
+            lang={otherLocale}
+          >
             {t.nav.switchLanguage}
           </Link>
         </nav>
