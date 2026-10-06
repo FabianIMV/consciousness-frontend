@@ -1,24 +1,33 @@
 /**
- * Turns WordPress `content.rendered` into a fragment that is safe to inject.
+ * Turns WordPress `content.rendered` into a fragment that is safe to inject and
+ * that takes its appearance from this site, not from whoever wrote the post.
  *
  * Editors work in Elementor, whose text widget accepts a complete pasted HTML
- * document. One published page does exactly that, and its stylesheet redefined
- * `*`, `body`, and `.container` — the frontend's own layout class — breaking the
- * page around it.
+ * document, and most published posts are exactly that: generated pages that
+ * carry their own `<style>` block, inline styles, Google Fonts links, and emoji
+ * used as icons. An earlier version scoped those stylesheets under the content
+ * element and rendered them as a "light island". That contained the layout
+ * damage but kept the look — violet gradient banners, gold bold text, drop
+ * shadows, pill badges — which is the opposite of the design this site is
+ * built on, and the parsing it needed was the source of four separate bugs.
  *
- * This runs the markup through a real HTML parser and the stylesheets through a
- * real CSS parser. An earlier regex-based version was defeated by inputs that
- * occur in ordinary pasted CSS: `@charset "UTF-8";` followed by `:root`, a `}`
- * inside a string or `url()`, a comma inside `:is()`, and `</style >` written
- * with whitespace before the bracket. Each of those either escaped the scope or
- * silently dropped a rule.
+ * So author CSS is now discarded outright. The markup keeps its structure and
+ * its class names, and `styles/wordpress.css` gives the recurring components
+ * (quotes, callouts, card grids, reference lists, the reading-list entries)
+ * the site's own treatment.
  *
- * This is layout containment first and foremost. It also removes scripts and
- * event handlers, but it is not the trust boundary — WordPress is, since only
- * users with `unfiltered_html` can author raw markup.
+ * Beyond that, this module repairs what pasting does to prose:
+ *
+ * - hard line wraps that `wpautop` turned into `<br>` mid-sentence are joined;
+ * - lines that were headings before their styled `<div>` was stripped are
+ *   promoted back to headings;
+ * - empty paragraphs and symbol-only dividers become nothing and `<hr>`;
+ * - a leading heading that repeats the page title is removed.
+ *
+ * It also removes scripts and event handlers, but it is not the trust boundary
+ * — WordPress is, since only users with `unfiltered_html` can author raw markup.
  */
 
-import postcss, { type ChildNode, type Root } from 'postcss';
 import sanitizeHtml from 'sanitize-html';
 import { DEFAULT_LOCALE, localePath, type Locale } from '@/lib/site';
 import { stripCssArtifacts } from '@/lib/text';
@@ -27,141 +36,11 @@ import { toRelativeUrl, isWordPressUrl } from '@/lib/urls';
 /** Class applied to the element that receives WordPress HTML. */
 export const WP_CONTENT_CLASS = 'article-content';
 
-const SCOPE = `.${WP_CONTENT_CLASS}`;
-
-/** Wrapper for content that carries its own stylesheet. */
-export const WP_DOCUMENT_CLASS = 'wp-document';
-
-/** At-rules whose children are ordinary style rules and must be scoped too. */
-const CONDITIONAL_AT_RULES = new Set(['media', 'supports', 'layer', 'container']);
-
-/** At-rules that define a name rather than a selector; scoping them breaks them. */
-const NAMED_AT_RULES = new Set(['keyframes', 'font-face', 'counter-style', 'property', 'page']);
-
-/** At-rules that only make sense in a standalone document. */
-const DROPPED_AT_RULES = new Set(['import', 'charset', 'namespace']);
-
 const SVG_TAGS = [
   'svg', 'g', 'path', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'rect',
   'text', 'tspan', 'defs', 'use', 'symbol', 'desc', 'linearGradient',
   'radialGradient', 'stop', 'clipPath', 'mask', 'pattern',
 ];
-
-/* -------------------------------------------------------------------------- */
-/* CSS scoping                                                                 */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Rewrites one selector so it can only match inside the content element.
- * Selectors describing the document itself are remapped onto the scope element.
- */
-function scopeSelector(selector: string): string {
-  // `h1` is demoted to `h2` in the markup, so a rule written for it would
-  // otherwise stop matching.
-  const trimmed = selector.trim().replace(/(^|[\s>+~(,])h1\b/gi, '$1h2');
-  if (!trimmed) return '';
-  if (trimmed === '*') return `${SCOPE}, ${SCOPE} *`;
-
-  // `body`, `html`, `:root`, and any qualified form of them (`body.dark`,
-  // `html[dir=rtl]`, `body:not(.x)`) all describe the wrapper, not a descendant.
-  const documentSelector = trimmed.match(/^(?::root|html|body)((?:[.#:[][^\s>+~]*)*)([\s>+~].*)?$/i);
-  if (documentSelector) {
-    // Qualifiers on the document element (`body.dark`, `body:not(.x)`) cannot be
-    // reproduced on the wrapper, so they are dropped; keeping them would make
-    // the rule match nothing.
-    const descendant = documentSelector[2]?.trim() ?? '';
-    return descendant ? `${SCOPE} ${descendant}` : SCOPE;
-  }
-
-  return `${SCOPE} ${trimmed}`;
-}
-
-/**
- * True when a selector list targets the document element itself, including
- * qualified forms such as `body.dark` or `body:not(.x)` — those still describe
- * the wrapper, so their colours are page chrome too.
- */
-function targetsDocument(selectors: string[]): boolean {
-  return selectors.some((selector) =>
-    /^(?:\*|(?::root|html|body)(?:[.#:[][^\s>+~]*)*)$/i.test(selector.trim())
-  );
-}
-
-/**
- * Drops page-level colour declarations. Those set the theme, which belongs to
- * the site: a pasted `background: white` would punch a white block into the
- * page for readers using the dark theme.
- */
-function dropPageChrome(rule: ChildNode): void {
-  if (rule.type !== 'rule') return;
-  rule.each((node) => {
-    if (node.type === 'decl' && /^(background(-color|-image)?|color)$/i.test(node.prop)) {
-      node.remove();
-    }
-  });
-}
-
-function scopeNodes(container: Root | ChildNode): void {
-  if (!('each' in container) || typeof container.each !== 'function') return;
-
-  container.each((node) => {
-    if (node.type === 'rule') {
-      // postcss splits on top-level commas only, so `:is(a, b)` stays intact.
-      const scoped = node.selectors.map(scopeSelector).filter(Boolean);
-      if (targetsDocument(node.selectors)) dropPageChrome(node);
-      node.selectors = scoped;
-      return;
-    }
-
-    if (node.type === 'atrule') {
-      const name = node.name.toLowerCase();
-      if (DROPPED_AT_RULES.has(name)) {
-        node.remove();
-        return;
-      }
-      if (CONDITIONAL_AT_RULES.has(name)) {
-        scopeNodes(node);
-        return;
-      }
-      if (NAMED_AT_RULES.has(name)) return;
-      // Unknown at-rule with a block: scope its children defensively.
-      if (node.nodes) scopeNodes(node);
-    }
-  });
-}
-
-/**
- * Removes the paragraph tags WordPress's auto-formatter leaves inside a
- * `<style>` block.
- *
- * `wpautop` runs over the stored post body as plain text, without regard for
- * which element it is inside, so a stylesheet written with a blank line between
- * rules comes back with `</p>\n<p>` wedged into the gaps. postcss then reads
- * `</p>\n<p>.consciousness-post h1` as the next rule's selector and scoping
- * turns it into `.article-content </p><p>.consciousness-post h1` — a selector
- * that matches nothing, so the stylesheet silently stops applying, and a
- * `<style>` element whose text now contains literal paragraph tags. Anything
- * that later looks for `<p>` in the sanitised markup finds those and reads the
- * CSS between them as prose, which is how a stylesheet ends up as an excerpt.
- *
- * Only `<p>` and `<br>` are removed — they are what `wpautop` inserts, and
- * neither can appear in valid CSS outside a string.
- */
-function stripAutoParagraphs(css: string): string {
-  return css.replace(/<\/?(?:p|br)\b[^>]*>/gi, '');
-}
-
-/** Prefixes every selector in a stylesheet with the content scope. */
-export function scopeCss(css: string): string {
-  try {
-    const root = postcss.parse(css);
-    scopeNodes(root);
-    return root.toString();
-  } catch {
-    // Unparseable CSS is dropped rather than injected unscoped.
-    return '';
-  }
-}
 
 /* -------------------------------------------------------------------------- */
 /* HTML                                                                        */
@@ -213,9 +92,10 @@ function buildOptions(locale: Locale): sanitizeHtml.IOptions {
       'img',
       'figure',
       'figcaption',
-      'style',
       ...SVG_TAGS,
     ],
+    // `style` is deliberately absent here, as an attribute: inline styles are
+    // where most of the pasted colour and spacing lives.
     allowedAttributes: {
       '*': ['class', 'id', 'lang', 'dir', 'role', 'aria-*', 'data-*'],
       a: ['href', 'name', 'target', 'rel', 'title'],
@@ -239,22 +119,19 @@ function buildOptions(locale: Locale): sanitizeHtml.IOptions {
       radialGradient: ['cx', 'cy', 'r', 'gradientunits'],
       use: ['href'],
     },
-    // `<style>` is kept only so its text can be handed to postcss below and
-    // re-emitted scoped; the library's warning about it assumes the CSS is
-    // passed through untouched, which is exactly what this module prevents.
-    allowVulnerableTags: true,
     /*
-     * `head` is deliberately absent: a pasted document keeps its stylesheet
-     * inside `<head>`, and listing it here discarded the very CSS this module
-     * exists to scope. The `head` element itself is not allowed, so it is
-     * unwrapped and its `<style>` child survives.
+     * Listing `style` here discards the stylesheet's text along with the tag.
+     * The HTML parser reads a `<style>` body as raw text, so the `</p><p>`
+     * pairs `wpautop` wedges between rules go with it instead of surfacing as
+     * paragraphs.
      *
-     * `title` stays, which drops a pasted document's title instead of letting
-     * it render as stray text at the top of the page. The cost is that a
-     * `<title>` inside an inline SVG is dropped too; `aria-label` and `<desc>`
-     * remain available for naming those.
+     * `head` is not listed: the element is unwrapped, and with its `<style>`
+     * and `<title>` children dropped, nothing of it remains. `title` is listed
+     * so a pasted document's title does not render as stray text; the cost is
+     * that a `<title>` inside an inline SVG goes too, and `aria-label` and
+     * `<desc>` remain for naming those.
      */
-    nonTextTags: ['script', 'textarea', 'noscript', 'title'],
+    nonTextTags: ['script', 'style', 'textarea', 'noscript', 'title'],
     allowedSchemes: ['http', 'https', 'mailto', 'tel'],
     allowedSchemesAppliedToAttributes: ['href', 'src', 'srcset'],
     allowProtocolRelative: false,
@@ -289,7 +166,7 @@ function buildOptions(locale: Locale): sanitizeHtml.IOptions {
       },
     },
     /*
-     * Orphaned CSS is handled by `stripCssFromTextNodes` below, not by an
+     * Orphaned CSS is handled by `cleanTextNodes` below, not by an
      * `exclusiveFilter` here. A filter keyed on `frame.text` cannot work:
      * sanitize-html accumulates the text of every descendant into that field,
      * so an Elementor post wrapped in one outer `<div>` that also contains a
@@ -300,16 +177,40 @@ function buildOptions(locale: Locale): sanitizeHtml.IOptions {
   };
 }
 
-/**
- * Removes CSS-shaped runs from text nodes, leaving markup untouched.
+/* -------------------------------------------------------------------------- */
+/* Text nodes                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Pictographic emoji, with their modifiers and ZWJ sequences, plus one trailing
+ * space so `📚 More papers` becomes `More papers` rather than ` More papers`.
  *
- * `<style>` elements have already been lifted out by the caller, so any
- * remaining CSS in the text is orphaned — a style tag that lost its wrapper
- * before WordPress stored the post. Operating on text nodes rather than whole
- * elements means a stray rule glued to a real sentence costs that rule and
- * nothing else.
+ * Limited to U+2300 and above: below that, Extended_Pictographic includes ©, ®,
+ * ™, and several arrows, which are ordinary typography.
  */
-function stripCssFromTextNodes(html: string): string {
+const PICTOGRAPH = '(?:(?=\\p{Extended_Pictographic})[\\u{2300}-\\u{2BFF}\\u{1F000}-\\u{1FAFF}])';
+const EMOJI_MODIFIERS = '[\\uFE0E\\uFE0F\\u20E3\\u{1F3FB}-\\u{1F3FF}\\u{E0020}-\\u{E007F}]*';
+const FLAG = '[\\u{1F1E6}-\\u{1F1FF}]{2}';
+const EMOJI = new RegExp(
+  `(?:${FLAG}|${PICTOGRAPH}${EMOJI_MODIFIERS}(?:\\u200D${PICTOGRAPH}${EMOJI_MODIFIERS})*)[ \\u00A0]?`,
+  'gu'
+);
+
+export function stripEmoji(text: string): string {
+  return text.replace(EMOJI, '');
+}
+
+/**
+ * Applies text-level cleanup to every text node, leaving markup untouched.
+ *
+ * `<style>` elements are already gone by this point, so any CSS left in the
+ * text is orphaned — a style tag that lost its wrapper before WordPress stored
+ * the post. Operating on text nodes rather than whole elements means a stray
+ * rule glued to a real sentence costs that rule and nothing else.
+ */
+function cleanTextNodes(html: string): string {
+  const clean = (text: string) => stripEmoji(stripCssArtifacts(text));
+
   let out = '';
   let index = 0;
 
@@ -317,11 +218,11 @@ function stripCssFromTextNodes(html: string): string {
     const tagStart = html.indexOf('<', index);
 
     if (tagStart === -1) {
-      out += stripCssArtifacts(html.slice(index));
+      out += clean(html.slice(index));
       break;
     }
 
-    out += stripCssArtifacts(html.slice(index, tagStart));
+    out += clean(html.slice(index, tagStart));
 
     const tagEnd = html.indexOf('>', tagStart);
     if (tagEnd === -1) {
@@ -337,35 +238,207 @@ function stripCssFromTextNodes(html: string): string {
   return out;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Paragraphs                                                                  */
+/* -------------------------------------------------------------------------- */
+
+const BREAK = /<br\s*\/?>/gi;
+
+function visibleText(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;| /g, ' ')
+    .replace(/&amp;/g, '&')
+    .trim();
+}
+
 /**
- * Sanitises WordPress body HTML and scopes any stylesheet it carries.
- * The stylesheet is emitted ahead of the content so it applies to it.
+ * True for a line that was a heading before its markup was lost.
+ *
+ * Several posts were generated with section titles as styled `<div>`s; once
+ * the styling is gone they read as a short line glued to the top of the next
+ * paragraph ("Philosophical Foundations<br>The Hindu concept…"). Only plain
+ * text qualifies: short, capitalised like a title, and not ending the way a
+ * sentence or a lead-in ("Key insight:") does.
  */
-export function sanitizeContent(html: string, locale: Locale = DEFAULT_LOCALE): string {
+function isHeadingLike(line: string): boolean {
+  if (line.includes('<')) return false;
+
+  const text = visibleText(line);
+  if (text.length < 3 || text.length > 90) return false;
+  if (/[.,;:!?…]$/.test(text)) return false;
+  if (!/^[\p{Lu}\p{N}]/u.test(text)) return false;
+
+  const words = text.split(/\s+/);
+  if (words.length > 10) return false;
+
+  // Title case: every word long enough to be a content word is capitalised,
+  // and there is at least one such word — "C-H" is a diagram label.
+  const contentWords = words.filter((word) => word.length > 3);
+  return contentWords.length > 0 && contentWords.every((word) => /^[\p{Lu}\p{N}("“‘]/u.test(word));
+}
+
+/** A short run of symbols with no words — `◆ ◆ ◆`, `∞`, `* * *` — used as a section break. */
+function isDivider(html: string): boolean {
+  const text = visibleText(html);
+  return text.length > 0 && text.length <= 12 && !/[\p{L}\p{N}]/u.test(text);
+}
+
+/** A line that is only an image, which the stylesheet already sets as a block. */
+function isImageOnly(line: string): boolean {
+  return /<img\b/i.test(line) && !visibleText(line);
+}
+
+/**
+ * Whether a `<br>` between two lines was meant.
+ *
+ * `wpautop` turns every newline in the stored body into a `<br>`, so markup
+ * that was pasted with its source wrapped at 120 columns reads as ragged,
+ * half-empty lines. A break is kept only where the line before it ends a
+ * sentence or a lead-in and the line after starts a new one — "…practices:"
+ * followed by "First, …" — and joined with a space everywhere else.
+ */
+function keepsBreak(before: string, after: string): boolean {
+  if (isImageOnly(before) || isImageOnly(after)) return false;
+  const end = visibleText(before);
+  const start = visibleText(after);
+  return /[.!?:;…]["”’)\]]*$/.test(end) && !/^[\p{Ll}]/u.test(start);
+}
+
+function splitLines(inner: string): string[] {
+  return inner
+    .split(BREAK)
+    .map((line) => line.trim())
+    .filter((line) => visibleText(line) || /<img\b/i.test(line));
+}
+
+function joinLines(lines: string[]): string {
+  let joined = lines[0] ?? '';
+  for (let i = 1; i < lines.length; i += 1) {
+    joined += keepsBreak(lines[i - 1], lines[i]) ? '<br />' : ' ';
+    joined += lines[i];
+  }
+  return joined;
+}
+
+/**
+ * Removes `<br>`s that only add blank space: at the start or end of an
+ * element, and all but one of a consecutive run. Pasted headers arrive as a
+ * stack of nine of them before the first word.
+ */
+function trimBreaks(html: string): string {
+  return html
+    .replace(/(<(?!br\b)[a-z][a-z0-9]*\b[^>]*>)(?:\s*<br\s*\/?>)+/gi, '$1')
+    .replace(/(?:<br\s*\/?>\s*)+(<\/[a-z][a-z0-9]*>)/gi, '$1')
+    .replace(/(?:<br\s*\/?>\s*){2,}/gi, '<br />');
+}
+
+/**
+ * Repairs blocks damaged by pasting: drops empty paragraphs, joins
+ * hard-wrapped lines, promotes lost headings, and turns symbol-only "dividers"
+ * into `<hr>`.
+ *
+ * Matching with regular expressions is safe here because the input has been
+ * through the HTML parser: every element is closed, and none of the matched
+ * elements can contain another of its own kind.
+ */
+function normaliseBlocks(html: string): string {
+  const repaired = trimBreaks(html)
+    .replace(/<div\b[^>]*>([^<]*)<\/div>/gi, (match: string, text: string) =>
+      isDivider(text) ? '<hr />' : match
+    )
+    .replace(/<(h[2-6])\b([^>]*)>([\s\S]*?)<\/\1>/gi, (_, tag: string, attrs: string, inner: string) =>
+      `<${tag}${attrs}>${splitLines(inner).join(' ')}</${tag}>`
+    )
+    .replace(/<li\b([^>]*)>([\s\S]*?)<\/li>/gi, (_, attrs: string, inner: string) =>
+      // A list item can hold nested lists; leave those to their own items.
+      /<(?:ul|ol)\b/i.test(inner) ? `<li${attrs}>${inner}</li>` : `<li${attrs}>${joinLines(splitLines(inner))}</li>`
+    );
+
+  return repaired.replace(
+    /<p\b([^>]*)>([\s\S]*?)<\/p>/gi,
+    (match: string, attrs: string, inner: string, offset: number, whole: string) => {
+      const lines = splitLines(inner);
+      if (!lines.length) return '';
+
+      // A heading glued to the top of its section, or a lone title-like line
+      // introducing the prose that follows. A lone line followed by anything
+      // else is more likely a label ("Active research") than a section title.
+      let heading = '';
+      const followedByProse = /^\s*<p\b/i.test(whole.slice(offset + match.length));
+      if (isHeadingLike(lines[0]) && (lines.length > 1 || followedByProse)) {
+        heading = `<h3>${lines.shift()}</h3>`;
+      }
+      if (!lines.length) return heading;
+
+      if (lines.length === 1 && !/<img\b/i.test(lines[0]) && isDivider(lines[0])) {
+        return `${heading}<hr />`;
+      }
+
+      return `${heading}<p${attrs}>${joinLines(lines)}</p>`;
+    }
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Leading heading                                                             */
+/* -------------------------------------------------------------------------- */
+
+function normaliseTitle(text: string): string {
+  return visibleText(text)
+    .toLowerCase()
+    .replace(/[‘’“”"']/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/**
+ * True when two titles name the same thing — equal, or one a near-complete
+ * version of the other ("Evidence of X: 2025 Update" against "X: 2025 Update").
+ */
+export function isSameTitle(a: string, b: string): boolean {
+  const x = normaliseTitle(a);
+  const y = normaliseTitle(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  const [shorter, longer] = x.length < y.length ? [x, y] : [y, x];
+  return longer.includes(shorter) && shorter.length >= longer.length * 0.6;
+}
+
+/**
+ * Removes the first heading when nothing but images precedes it and `matches`
+ * accepts its text. Pasted documents open with their own title, which the page
+ * has already rendered as its `<h1>`.
+ */
+function dropLeadingHeading(html: string, matches: (text: string) => boolean): string {
+  const heading = html.match(/<h([2-6])\b[^>]*>([\s\S]*?)<\/h\1>/i);
+  if (!heading || heading.index === undefined) return html;
+  if (visibleText(html.slice(0, heading.index))) return html;
+  if (!matches(visibleText(heading[2]))) return html;
+  return html.slice(0, heading.index) + html.slice(heading.index + heading[0].length);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Entry point                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export interface SanitizeOptions {
+  /**
+   * Called with the text of the body's first heading, if nothing but images
+   * comes before it. Return true to drop it as a repeat of the page title.
+   */
+  dropLeadingHeading?: (text: string) => boolean;
+}
+
+/** Sanitises WordPress body HTML into a fragment styled entirely by this site. */
+export function sanitizeContent(
+  html: string,
+  locale: Locale = DEFAULT_LOCALE,
+  options: SanitizeOptions = {}
+): string {
   if (!html) return '';
 
-  const cleaned = sanitizeHtml(html, buildOptions(locale));
+  const body = normaliseBlocks(cleanTextNodes(sanitizeHtml(html, buildOptions(locale))));
 
-  // The parser has normalised every end tag, so the stylesheets can now be
-  // separated with a simple match.
-  const styles: string[] = [];
-  const withoutStyles = cleaned.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css: string) => {
-    styles.push(stripAutoParagraphs(css));
-    return '';
-  });
-
-  const body = stripCssFromTextNodes(withoutStyles);
-
-  const scoped = styles
-    .map((css) => scopeCss(css))
-    .filter((css) => css.trim())
-    .join('\n');
-
-  if (!scoped) return body;
-
-  // Content that ships its own stylesheet was designed as a standalone light
-  // page: its cards and headings hardcode light colours that would otherwise
-  // sit on the dark theme's background. Rendering it as a light island keeps it
-  // internally consistent and readable under either theme.
-  return `<style>${scoped}</style><div class="${WP_DOCUMENT_CLASS}">${body}</div>`;
+  return options.dropLeadingHeading ? dropLeadingHeading(body, options.dropLeadingHeading) : body;
 }

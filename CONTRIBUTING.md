@@ -32,6 +32,7 @@ npm run check:site                                                   # terminal 
 | Colours, type, spacing               | `styles/tokens.css`                              |
 | Component appearance                 | `app/globals.css`                                |
 | Article body styling                 | `styles/typography.css`, `.article-content`      |
+| Look of components pasted in posts   | `styles/wordpress.css`                           |
 | Header or footer                     | `components/SiteHeader.tsx`, `SiteFooter.tsx`    |
 | A page's title, description, sharing | that page's `generateMetadata`                   |
 | schema.org output                    | `lib/schema.ts`                                  |
@@ -56,8 +57,17 @@ npm run check:site                                                   # terminal 
 
 ## Design intent
 
-Near-black ink on paper, hairline rules, and a single navy accent reserved for
-links and active state. Serif for anything that is read, sans for anything that
-is operated. Emphasis comes from typography and whitespace.
+A printed journal, not an app. Warm paper, near-black ink, hairline rules, and
+one red — the editor's pencil — kept for marks that mean something: entry
+numbers, the active section, link underlines, quotation rules.
 
-No gradients, glow effects, glassmorphism, drop shadows on cards, or emoji.
+Newsreader sets everything that is read or operated; IBM Plex Mono sets data —
+dates, numbers, reading times, labels. Headlines are regular weight and get
+their presence from size and tight leading, not from bold.
+
+The home page is a numbered index, not a grid of cards. Articles lead with their
+headline, not an image; an image appears where the author placed it in the body.
+
+No gradients, glow effects, glassmorphism, rounded cards, drop shadows, pills,
+or emoji — in the chrome or in WordPress content, which is why the sanitiser
+discards author CSS rather than containing it.

@@ -49,18 +49,28 @@ English and the rest of the page still renders in Spanish.
 ## Content coming from WordPress
 
 `content.rendered` cannot be trusted to be a clean HTML fragment. Elementor's
-text widget lets an editor paste an entire HTML document, and at least one
-published page does exactly that. `sanitizeContent()` in `lib/wordpress.ts`:
+text widget lets an editor paste an entire HTML document, and most published
+posts are exactly that: generated pages with their own stylesheet, inline
+styles, web-font links, and emoji used as icons. The frontend owns the design,
+so `sanitizeContent()` in `lib/sanitize.ts`:
 
 - strips the document wrapper (`<!DOCTYPE>`, `<html>`, `<head>`, `<body>`,
   `<meta>`, `<title>`, `<link>`) and any `<script>`;
-- scopes every rule of an embedded stylesheet under `.article-content`, so CSS
-  written for a standalone page cannot restyle the site around it, and drops
-  page-level `background`/`color` declarations that would fight the theme;
-- demotes `<h1>` to `<h2>`, since the page already renders its own `<h1>`;
+- **discards author CSS** — `<style>` blocks and `style` attributes — and
+  pictographic emoji; class names are kept, and `styles/wordpress.css` gives the
+  recurring components (quotes, callouts, card grids, references, reading-list
+  entries) the site's own treatment;
+- repairs what pasting does to prose: joins lines that `wpautop` broke with
+  `<br>` mid-sentence, promotes title-case lines that lost their heading markup
+  back to headings, removes empty paragraphs, and turns symbol-only dividers
+  (`◆ ◆ ◆`) into `<hr>`;
+- demotes `<h1>` to `<h2>`, since the page already renders its own `<h1>`, and
+  can drop a leading heading that repeats the page title;
 - rewrites media URLs to the HTTPS proxy path and internal links to the current
   locale;
 - adds `loading`, `decoding`, and a fallback `alt` to body images.
+
+`npm run check:sanitizer` runs the regression cases for all of the above.
 
 ## Local development
 
@@ -134,7 +144,7 @@ app/
   llms.txt/          plain-text index for answer engines
   robots.ts
   sitemap.ts
-components/          SiteHeader, SiteFooter, EditorialPage, ContactForm, JsonLd
+components/          SiteHeader, SiteFooter, EditorialPage, ContactForm, NotFoundContent, JsonLd
 lib/
   site.ts            URL and locale helpers — the source of truth for links
   dictionaries.ts    interface copy, per locale
@@ -142,5 +152,5 @@ lib/
   schema.ts          schema.org graph builders
   i18n.ts            machine translation of WordPress bodies
 scripts/             mock WordPress backend, site crawler
-styles/              design tokens and typography
+styles/              design tokens, typography, house styles for WordPress content
 ```

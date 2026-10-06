@@ -11,7 +11,14 @@ import {
   webPageNode,
   websiteNode,
 } from '@/lib/schema';
-import { DEFAULT_LOCALE, alternatesFor, isLocale, ogImageFor, type Locale } from '@/lib/site';
+import {
+  CONTACT_EMAIL,
+  DEFAULT_LOCALE,
+  alternatesFor,
+  isLocale,
+  ogImageFor,
+  type Locale,
+} from '@/lib/site';
 
 export const revalidate = 3600;
 
@@ -65,60 +72,43 @@ export default function ContactPage({ params }: { params: { lang: string } }) {
       <JsonLd data={structuredData} />
       <SiteHeader locale={locale} active="contact" path={PATH} />
 
-      <div className="page__body">
-        <section className="page-hero">
-          <div className="container container--reading">
-            <p className="eyebrow page-hero__eyebrow">{t.contact.eyebrow}</p>
-            <h1 className="page-hero__title">{t.contact.title}</h1>
+      <main id="main" tabIndex={-1} className="page__body">
+        <header className="container page-header">
+          <div className="reading reading--wide">
+            <h1 className="page-header__title">{t.contact.title}</h1>
             <p className="standfirst">{t.contact.subtitle}</p>
           </div>
-        </section>
+        </header>
 
-        <main id="main" tabIndex={-1}>
-          <div
-            className="container container--reading"
-            style={{ paddingBlock: 'var(--spacing-12)' }}
-          >
+        <div className="container">
+          <div className="reading reading--wide contact-layout">
             <ContactForm locale={locale} />
 
-            <section
-              aria-labelledby="collaboration-heading"
-              style={{
-                marginTop: 'var(--spacing-12)',
-                paddingTop: 'var(--spacing-10)',
-                borderTop: '1px solid var(--rule)',
-              }}
-            >
-              <h2
-                id="collaboration-heading"
-                className="section-heading"
-                style={{ marginBottom: 'var(--spacing-6)' }}
-              >
-                {t.contact.sectionTitle}
-              </h2>
+            <aside className="contact-notes">
+              <section className="contact-note">
+                <h2 className="contact-note__heading mono">{t.contact.directHeading}</h2>
+                <p>
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="contact-note__email">
+                    {CONTACT_EMAIL}
+                  </a>
+                </p>
+              </section>
 
-              <div className="panel-grid">
-                <div className="panel">
-                  <h3 className="panel__heading">{t.contact.collaborationHeading}</h3>
-                  <p className="panel__text">{t.contact.collaborationText}</p>
-                </div>
+              <section className="contact-note">
+                <h2 className="contact-note__heading mono">{t.contact.collaborationHeading}</h2>
+                <p>{t.contact.collaborationText}</p>
+              </section>
 
-                <div className="panel">
-                  <h3 className="panel__heading">{t.contact.papersHeading}</h3>
-                  <p className="panel__text">{t.contact.papersText}</p>
-                </div>
-              </div>
-            </section>
+              <section className="contact-note">
+                <h2 className="contact-note__heading mono">{t.contact.papersHeading}</h2>
+                <p>{t.contact.papersText}</p>
+              </section>
 
-            <p
-              className="panel__text"
-              style={{ marginTop: 'var(--spacing-10)', color: 'var(--text-tertiary)' }}
-            >
-              {t.contact.privacy}
-            </p>
+              <p className="contact-notes__privacy mono">{t.contact.privacy}</p>
+            </aside>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
 
       <SiteFooter locale={locale} />
     </div>

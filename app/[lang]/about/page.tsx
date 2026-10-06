@@ -44,7 +44,11 @@ export default async function AboutPage({ params }: { params: { lang: string } }
   const t = getDictionary(locale);
 
   const page = await getPageBySlug('about');
-  const source = page ? sanitizeContent(page.content.rendered, locale) : '';
+  // The page renders its own title, and a pasted document opens with its own;
+  // the body's first heading is that repeat.
+  const source = page
+    ? sanitizeContent(page.content.rendered, locale, { dropLeadingHeading: () => true })
+    : '';
   const content = source ? await translateContent(source, locale) : '';
   // Without a translation key the body stays English; say so, or a Spanish
   // screen reader voices English prose.
@@ -71,7 +75,6 @@ export default async function AboutPage({ params }: { params: { lang: string } }
       locale={locale}
       active="about"
       path={PATH}
-      eyebrow={t.about.eyebrow}
       title={t.about.title}
       subtitle={t.about.subtitle}
       content={content}

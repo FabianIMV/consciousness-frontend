@@ -75,3 +75,16 @@ export function alternatesFor(locale: Locale, path = '') {
     },
   };
 }
+
+/**
+ * Date in the reader's language: "12 February 2026" / "12 de febrero de 2026",
+ * or "12 Feb 2026" / "12 feb 2026" where space is short.
+ */
+export function formatDate(date: string, locale: Locale, length: 'long' | 'short' = 'long'): string {
+  return new Date(date).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-GB', {
+    year: 'numeric',
+    month: length,
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}

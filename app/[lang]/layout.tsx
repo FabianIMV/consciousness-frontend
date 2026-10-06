@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import '../globals.css';
 import { getDictionary } from '@/lib/dictionaries';
+import { fontVariables } from '@/lib/fonts';
 import { HTML_LOCALE, LOCALES, SITE_NAME, SITE_URL, isLocale } from '@/lib/site';
 
 export function generateStaticParams() {
@@ -64,7 +65,7 @@ export default function LocaleLayout({
   const t = getDictionary(lang);
 
   return (
-    <html lang={HTML_LOCALE[lang]}>
+    <html lang={HTML_LOCALE[lang]} className={fontVariables}>
       <body>
         <a href="#main" className="skip-link">
           {t.nav.skipToContent}
