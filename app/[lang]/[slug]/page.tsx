@@ -1,269 +1,246 @@
-/**
- * Individual Article Page
- * Dynamically renders WordPress pages by slug
- */
-
 import Link from 'next/link';
-import { getFeaturedImage, processContent, decodeHtmlEntities } from '@/lib/wordpress';
-import { translateContent } from '@/lib/i18n';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { HARDCODED_POSTS } from '@/lib/hardcoded-posts';
+import JsonLd from '@/components/JsonLd';
+import SiteFooter from '@/components/SiteFooter';
+import SiteHeader from '@/components/SiteHeader';
+import { getDictionary } from '@/lib/dictionaries';
+import { translateContent } from '@/lib/i18n';
+import {
+  articleNode,
+  breadcrumbNode,
+  graph,
+  organizationNode,
+  webPageNode,
+  websiteNode,
+} from '@/lib/schema';
+import {
+  DEFAULT_LOCALE,
+  LOCALES,
+  SITE_URL,
+  alternatesFor,
+  formatDate,
+  isLocale,
+  localePath,
+  ogImageFor,
+} from '@/lib/site';
+import { absoluteUrl } from '@/lib/urls';
+import {
+  REVALIDATE_SECONDS,
+  decodeHtmlEntities,
+  excerptFrom,
+  getFeaturedImage,
+  getFeaturedImageAlt,
+  getPostBySlug,
+  getPosts,
+  isSameTitle,
+  readingTime,
+  sanitizeContent,
+  stripHtml,
+  timestamps,
+  wordCount,
+  type WordPressPost,
+} from '@/lib/wordpress';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = REVALIDATE_SECONDS;
+
+export async function generateStaticParams() {
+  const posts = await getPosts();
+  return posts.flatMap((post) => LOCALES.map((lang) => ({ lang, slug: post.slug })));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string; lang: string };
+}): Promise<Metadata> {
+  const { slug } = params;
+  const locale = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+  const post = await getPostBySlug(slug);
+
+  if (!post) return { title: 'Page not found', robots: { index: false, follow: true } };
+
+  // Translated too: leaving these in English gave the Spanish page a title and
+  // description byte-identical to the English one on a different canonical URL.
+  const [title, description] = await Promise.all([
+    translateContent(decodeHtmlEntities(stripHtml(post.title.rendered)), locale),
+    translateContent(excerptFrom(post.content.rendered, 155), locale),
+  ]);
+
+  const image = getFeaturedImage(post);
+  const path = `/${slug}`;
+  const canonical = alternatesFor(locale, path).canonical;
+  const { published, modified } = timestamps(post);
+
+  return {
+    title,
+    description,
+    alternates: alternatesFor(locale, path),
+    openGraph: {
+      type: 'article',
+      url: canonical,
+      title,
+      description,
+      publishedTime: published,
+      modifiedTime: modified,
+      images: image
+        ? [{ url: absoluteUrl(image, SITE_URL), alt: getFeaturedImageAlt(post) }]
+        : ogImageFor(locale),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+  };
+}
 
 export default async function ArticlePage({
   params,
 }: {
   params: { slug: string; lang: string };
 }) {
-  const { lang, slug } = params;
-  const page = HARDCODED_POSTS.find(post => post.slug === slug);
+  const locale = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+  const t = getDictionary(locale);
 
-  if (!page) {
-    notFound();
-  }
+  const [post, posts] = await Promise.all([getPostBySlug(params.slug), getPosts()]);
+  if (!post) notFound();
 
-  const featuredImage = getFeaturedImage(page);
-  const titleRaw = decodeHtmlEntities(page.title.rendered);
-  const contentRaw = processContent(page.content.rendered);
+  const path = `/${params.slug}`;
+  const titleRaw = decodeHtmlEntities(stripHtml(post.title.rendered));
+  // The share card and schema may use an image from the body; the page itself
+  // only leads with one the editor chose, since the body already shows its own.
+  const image = getFeaturedImage(post);
+  const hero = getFeaturedImage(post, { fromBody: false });
+  const { published, modified } = timestamps(post);
+  const minutes = readingTime(post.content.rendered);
 
-  const [
-    title,
-    content,
-    backLabel,
-    researchLabel,
-    papersLabel,
-    aboutLabel,
-    contactLabel,
-    exploreMoreTitle,
-    exploreMoreText,
-    viewAllArticlesLabel,
-    footerText
-  ] = await Promise.all([
-    translateContent(titleRaw, lang),
-    translateContent(contentRaw, lang),
-    translateContent('Back to Research', lang),
-    translateContent('Research', lang),
-    translateContent('Papers', lang),
-    translateContent('About', lang),
-    translateContent('Contact', lang),
-    translateContent('Explore More Research', lang),
-    translateContent('Discover more insights into consciousness and quantum mechanics', lang),
-    translateContent('View All Articles', lang),
-    translateContent(`© ${new Date().getFullYear()} Consciousness Networks. All rights reserved.`, lang)
+  // `posts` is newest first; numbering runs from the oldest, as on the index.
+  const position = posts.findIndex((entry) => entry.slug === post.slug);
+  const number = position === -1 ? null : posts.length - position;
+  const older = position === -1 ? undefined : posts[position + 1];
+  const newer = position > 0 ? posts[position - 1] : undefined;
+
+  const pagerTitle = (entry?: WordPressPost) =>
+    entry ? translateContent(decodeHtmlEntities(stripHtml(entry.title.rendered)), locale) : undefined;
+
+  const [title, description, body, olderTitle, newerTitle] = await Promise.all([
+    translateContent(titleRaw, locale),
+    translateContent(excerptFrom(post.content.rendered, 155), locale),
+    translateContent(
+      sanitizeContent(post.content.rendered, locale, {
+        dropLeadingHeading: (heading) => isSameTitle(heading, titleRaw),
+      }),
+      locale
+    ),
+    pagerTitle(older),
+    pagerTitle(newer),
+  ]);
+
+  const structuredData = graph([
+    organizationNode(),
+    websiteNode(locale),
+    webPageNode({ locale, path, name: title, description }),
+    articleNode({
+      locale,
+      path,
+      headline: title,
+      description,
+      datePublished: published,
+      dateModified: modified,
+      image,
+      wordCount: wordCount(post.content.rendered),
+    }),
+    breadcrumbNode(locale, [
+      { name: t.nav.research, path: '/' },
+      { name: titleRaw, path },
+    ]),
   ]);
 
   return (
-    <>
-      {/* Header */}
-      <header className="header-glass" style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-      }}>
-        <div className="container" style={{
-          height: 'var(--header-height)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <Link href={`/${lang}`} className="glow-on-hover header-title" style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-xl)',
-            fontWeight: 'var(--font-bold)',
-            color: 'var(--text-primary)',
-          }}>
-            Consciousness Networks
-          </Link>
+    <div className="page">
+      <JsonLd data={structuredData} />
+      <SiteHeader locale={locale} active="research" exact={false} path={path} />
 
-          <nav className="nav-desktop" style={{ display: 'flex', gap: 'var(--spacing-6)' }}>
-            <Link href={`/${lang}`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{researchLabel}</Link>
-            <Link href={`/${lang}/papers`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{papersLabel}</Link>
-            <Link href={`/${lang}/about`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{aboutLabel}</Link>
-            <Link href={`/${lang}/contact`} style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{contactLabel}</Link>
-          </nav>
-
-          <nav className="nav-mobile" style={{ display: 'none', gap: 'var(--spacing-4)' }}>
-            <Link href={`/${lang}`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{researchLabel}</Link>
-            <Link href={`/${lang}/papers`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{papersLabel}</Link>
-            <Link href={`/${lang}/about`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{aboutLabel}</Link>
-            <Link href={`/${lang}/contact`} style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-secondary)',
-            }}>{contactLabel}</Link>
-          </nav>
-        </div>
-      </header>
-
-      {/* Main Article */}
-      <article style={{
-        paddingTop: 'var(--header-height)',
-        minHeight: '100vh',
-      }}>
-        {/* Featured Image */}
-        {featuredImage && (
-          <div className="article-featured-image" style={{
-            width: '100%',
-            height: '500px',
-            overflow: 'hidden',
-            background: 'var(--bg-gradient-subtle)',
-            marginBottom: 'var(--spacing-10)',
-          }}>
-            <img
-              src={featuredImage}
-              alt={title || page.title.rendered}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
-          </div>
-        )}
-
-        {/* Article Content */}
-        <div className="container">
-          <div style={{
-            maxWidth: 'var(--content-max)',
-            margin: '0 auto',
-            padding: 'var(--spacing-8) var(--spacing-4)',
-          }}>
-            {/* Back Link */}
-            <Link href={`/${lang}`} style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 'var(--spacing-2)',
-              color: 'var(--primary-purple)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-semibold)',
-              marginBottom: 'var(--spacing-8)',
-              textDecoration: 'none',
-            }}>
-              ← {backLabel}
-            </Link>
-
-            {/* Title */}
-            <h1 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'var(--text-5xl)',
-              fontWeight: 'var(--font-black)',
-              color: 'var(--text-primary)',
-              lineHeight: 'var(--leading-tight)',
-              marginBottom: 'var(--spacing-8)',
-            }}>
-              {title}
-            </h1>
-
-            {/* Date */}
-            <div style={{
-              marginBottom: 'var(--spacing-8)',
-              paddingBottom: 'var(--spacing-6)',
-              borderBottom: '1px solid var(--border-light)',
-            }}>
-              <time className="metadata">
-                {new Date(page.date).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </time>
-            </div>
-
-            {/* Article Body */}
-            <div
-              className="article-content"
-              dangerouslySetInnerHTML={{ __html: content }}
-              style={{
-                fontSize: 'var(--text-lg)',
-                lineHeight: 'var(--leading-relaxed)',
-                color: 'var(--text-secondary)',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Related Articles CTA */}
-        <section style={{
-          marginTop: 'var(--spacing-16)',
-          padding: 'var(--spacing-12) 0',
-          background: 'var(--bg-gradient-subtle)',
-          borderTop: '1px solid var(--border-light)',
-        }}>
-          <div className="container">
-            <div style={{
-              maxWidth: 'var(--content-max)',
-              margin: '0 auto',
-              textAlign: 'center',
-            }}>
-              <h2 style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'var(--text-3xl)',
-                fontWeight: 'var(--font-bold)',
-                color: 'var(--text-primary)',
-                marginBottom: 'var(--spacing-4)',
-              }}>
-                {exploreMoreTitle}
-              </h2>
-
-              <p style={{
-                fontSize: 'var(--text-lg)',
-                color: 'var(--text-secondary)',
-                marginBottom: 'var(--spacing-6)',
-              }}>
-                {exploreMoreText}
+      <main id="main" tabIndex={-1} className="page__body">
+        <article>
+          <header className="container article-header">
+            <div className="reading">
+              <p className="article-header__kicker mono">
+                <Link href={localePath(locale, '/')}>{t.nav.research}</Link>
+                {number !== null && (
+                  <>
+                    <span aria-hidden="true">/</span>
+                    <span className="article-header__number">{t.article.number(number)}</span>
+                  </>
+                )}
               </p>
 
-              <Link href={`/${lang}`} className="btn btn-primary">
-                {viewAllArticlesLabel}
-              </Link>
+              <h1 className="article-header__title">{title}</h1>
+
+              <p className="article-meta mono">
+                <span>
+                  {t.article.published}{' '}
+                  <time dateTime={published}>{formatDate(published, locale)}</time>
+                </span>
+                <span>{t.article.readingTime(minutes)}</span>
+                {formatDate(modified, locale) !== formatDate(published, locale) && (
+                  <span>
+                    {t.article.updated}{' '}
+                    <time dateTime={modified}>{formatDate(modified, locale)}</time>
+                  </span>
+                )}
+              </p>
+            </div>
+          </header>
+
+          {hero && (
+            <figure className="container article-figure">
+              <div className="reading">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={hero}
+                  alt={getFeaturedImageAlt(post)}
+                  width={1600}
+                  height={900}
+                  fetchPriority="high"
+                />
+              </div>
+            </figure>
+          )}
+
+          <div className="container">
+            <div className="reading">
+              <div className="article-content" dangerouslySetInnerHTML={{ __html: body }} />
             </div>
           </div>
-        </section>
-      </article>
+        </article>
 
-      {/* Footer */}
-      <footer style={{
-        padding: 'var(--spacing-10) 0',
-        borderTop: '1px solid var(--border-light)',
-        background: 'var(--bg-secondary)',
-      }}>
-        <div className="container" style={{ textAlign: 'center' }}>
-          <p className="metadata">
-            {footerText}
-          </p>
-        </div>
-      </footer>
-    </>
+        {(older || newer) && (
+          <nav className="container pager" aria-label={t.article.pagerLabel}>
+            <div className="reading pager__inner">
+              {older && (
+                <Link href={localePath(locale, `/${older.slug}`)} className="pager__link" rel="prev">
+                  <span className="mono">← {t.article.previous}</span>
+                  <span className="pager__title">{olderTitle}</span>
+                </Link>
+              )}
+              {newer && (
+                <Link
+                  href={localePath(locale, `/${newer.slug}`)}
+                  className="pager__link pager__link--next"
+                  rel="next"
+                >
+                  <span className="mono">{t.article.next} →</span>
+                  <span className="pager__title">{newerTitle}</span>
+                </Link>
+              )}
+            </div>
+          </nav>
+        )}
+      </main>
+
+      <SiteFooter locale={locale} />
+    </div>
   );
 }

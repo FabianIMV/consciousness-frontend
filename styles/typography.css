@@ -1,177 +1,273 @@
 /**
- * Typography Styles - Consciousness Networks
- * Medium.com inspired with spiritual enhancement
+ * Typography.
+ *
+ * Newsreader for everything read or operated, IBM Plex Mono for data. Weight
+ * does little work here: headlines are set at regular weight and get their
+ * presence from size, optical sizing, and tight leading, the way a printed
+ * journal sets them, rather than from bold.
  */
 
-/* Base Typography */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
+  font-optical-sizing: auto;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
   color: var(--text-primary);
+  background: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Headings */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
-  font-weight: var(--font-bold);
-  line-height: var(--leading-tight);
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-4);
-}
-
-h1 {
-  font-size: var(--text-5xl);
-  font-weight: var(--font-black);
-  letter-spacing: var(--tracking-tight);
-}
-
-h2 {
-  font-size: var(--text-3xl);
-  font-weight: var(--font-bold);
-}
-
-h3 {
-  font-size: var(--text-2xl);
-  font-weight: var(--font-semibold);
-}
-
-h4 {
-  font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
-}
-
-h5 {
-  font-size: var(--text-lg);
-  font-weight: var(--font-medium);
-}
-
+h1,
+h2,
+h3,
+h4,
+h5,
 h6 {
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-}
-
-/* Paragraphs */
-p {
-  margin-bottom: var(--spacing-6);
-  line-height: var(--leading-relaxed);
-}
-
-/* Lead paragraph (intro text) */
-.lead {
-  font-size: var(--text-xl);
-  line-height: var(--leading-relaxed);
-  color: var(--text-secondary);
   font-family: var(--font-serif);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-snug);
+  color: var(--text-primary);
+  text-wrap: balance;
 }
 
-/* Links */
+p {
+  text-wrap: pretty;
+}
+
 a {
-  color: var(--primary-purple);
+  color: inherit;
   text-decoration: none;
-  transition: color var(--transition-base);
+  transition: color var(--transition), text-decoration-color var(--transition);
 }
 
 a:hover {
-  color: var(--deep-purple);
+  color: var(--accent);
 }
 
-/* Lists */
-ul, ol {
-  margin-bottom: var(--spacing-6);
-  padding-left: var(--spacing-6);
+::selection {
+  background: var(--accent);
+  color: var(--paper);
 }
 
-li {
-  margin-bottom: var(--spacing-2);
-  line-height: var(--leading-relaxed);
-}
-
-/* Blockquotes */
-blockquote {
-  border-left: 4px solid var(--primary-purple);
-  padding-left: var(--spacing-6);
-  margin: var(--spacing-8) 0;
-  font-family: var(--font-serif);
-  font-size: var(--text-lg);
-  font-style: italic;
+/* Dates, numbers, reading times, labels. */
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
 }
 
-/* Code */
-code {
-  font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 0.9em;
-  background: var(--bg-tertiary);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--primary-purple);
+/* Label above a list or section: mono, set off by a rule. */
+.section-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding-bottom: var(--spacing-3);
+  border-bottom: 1px solid var(--text-primary);
 }
 
-pre {
-  background: var(--bg-tertiary);
+/* Introductory paragraph under a page title. */
+.standfirst {
+  font-size: var(--text-lg);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-snug);
+  color: var(--text-secondary);
+  max-width: 36rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Article body — WordPress HTML is rendered inside this element. Author CSS   */
+/* is discarded by the sanitiser, so everything it looks like is decided here  */
+/* and in styles/wordpress.css.                                                */
+/* -------------------------------------------------------------------------- */
+
+.article-content {
+  --flow: 1.1em;
+
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+  hanging-punctuation: first;
+}
+
+/*
+ * Posts arrive wrapped in any number of <article>, <section>, and <div> levels,
+ * so vertical rhythm is set between sibling blocks at every depth rather than
+ * only between children of the content element.
+ */
+.article-content
+  :where(p, ul, ol, dl, blockquote, figure, table, pre, hr, div, section, header, aside, article, h2, h3, h4, h5, h6)
+  + :where(p, ul, ol, dl, blockquote, figure, table, pre, div, section, header, aside, article) {
+  margin-top: var(--flow);
+}
+
+.article-content :where(h2, h3, h4, h5, h6) {
+  margin-top: 2.2em;
+  margin-bottom: 0;
+}
+
+.article-content :where(h2, h3, h4, h5, h6) + * {
+  margin-top: 0.6em;
+}
+
+.article-content :where(h2, h3, h4, h5, h6):first-child {
+  margin-top: 0;
+}
+
+.article-content h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-snug);
+}
+
+.article-content h3 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+}
+
+.article-content :where(h4, h5, h6) {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0;
+}
+
+.article-content strong,
+.article-content b {
+  font-weight: var(--font-semibold);
+}
+
+.article-content a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--accent);
+}
+
+.article-content a:hover {
+  color: var(--accent);
+}
+
+.article-content :where(ul, ol) {
+  padding-left: 1.4em;
+}
+
+.article-content li + li {
+  margin-top: 0.4em;
+}
+
+.article-content li::marker {
+  color: var(--text-tertiary);
+}
+
+.article-content ol > li::marker {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  color: var(--accent);
+}
+
+.article-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: 0.4em;
+}
+
+.article-content figure {
+  margin: 2em 0;
+}
+
+.article-content figcaption {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+  margin-top: var(--spacing-3);
+}
+
+.article-content blockquote {
+  margin: 1.8em 0;
+  padding-left: 1.2em;
+  border-left: 2px solid var(--accent);
+  font-style: italic;
+  color: var(--ink-700);
+}
+
+.article-content blockquote p + p {
+  margin-top: 0.8em;
+}
+
+.article-content code {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  background: var(--bg-secondary);
+  padding: 0.1em 0.3em;
+}
+
+.article-content pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  background: var(--bg-secondary);
   padding: var(--spacing-4);
-  border-radius: var(--border-radius);
   overflow-x: auto;
-  margin-bottom: var(--spacing-6);
 }
 
-pre code {
+.article-content pre code {
   background: none;
   padding: 0;
 }
 
-/* Article Content - Medium Style */
-.article-content {
-  font-family: var(--font-serif);
-  font-size: var(--text-lg);
-  line-height: var(--leading-relaxed);
-  color: var(--text-primary);
+.article-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  display: block;
+  overflow-x: auto;
 }
 
-.article-content p {
-  margin-bottom: var(--spacing-6);
-}
-
-.article-content h2,
-.article-content h3 {
-  margin-top: var(--spacing-10);
-  margin-bottom: var(--spacing-4);
-  font-family: var(--font-display);
-}
-
-.article-content img {
-  max-width: 100%;
-  height: auto;
-  border-radius: var(--border-radius-lg);
-  margin: var(--spacing-8) 0;
-}
-
-.article-content a {
-  color: var(--primary-purple);
-  text-decoration: underline;
-  text-decoration-color: rgba(101, 40, 247, 0.3);
-  text-underline-offset: 2px;
-  transition: all var(--transition-base);
-}
-
-.article-content a:hover {
-  text-decoration-color: var(--primary-purple);
-}
-
-/* Metadata text (dates, author info) */
-.metadata {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+.article-content th {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  text-align: left;
+  border-bottom: 1px solid var(--text-primary);
 }
 
-/* Small caps for special text */
-.small-caps {
-  font-variant: small-caps;
-  letter-spacing: var(--tracking-wide);
+.article-content :where(th, td) {
+  padding: var(--spacing-2) var(--spacing-4) var(--spacing-2) 0;
+  vertical-align: top;
+}
+
+.article-content td {
+  border-bottom: 1px solid var(--rule);
+}
+
+.article-content hr {
+  border: 0;
+  height: 1px;
+  width: 4rem;
+  margin: 2.5em 0;
+  background: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .article-content {
+    font-size: 1.0625rem;
+  }
 }
