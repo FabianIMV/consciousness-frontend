@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Analytics } from '@vercel/analytics/next';
 import '../globals.css';
 import { getDictionary } from '@/lib/dictionaries';
 import { fontVariables } from '@/lib/fonts';
@@ -71,6 +72,7 @@ export default function LocaleLayout({
           {t.nav.skipToContent}
         </a>
         {children}
+        <Analytics />
       </body>
     </html>
   );
