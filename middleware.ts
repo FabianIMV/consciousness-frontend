@@ -45,9 +45,10 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   /**
-   * Skips API routes, Next internals, and any path with a file extension —
+   * Skips API routes, Next internals, Vercel's `/_vercel` endpoints (Web
+   * Analytics posts page views there), and any path with a file extension —
    * `/sitemap.xml`, `/robots.txt`, and `/llms.txt` are served by their own
    * handlers and must not be treated as a locale.
    */
-  matcher: ['/((?!api|_next/static|_next/image|.*\\.[^/]+$).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|_vercel|.*\\.[^/]+$).*)'],
 };

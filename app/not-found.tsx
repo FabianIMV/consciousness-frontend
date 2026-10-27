@@ -1,4 +1,5 @@
 import './globals.css';
+import { Analytics } from '@vercel/analytics/next';
 import NotFoundContent from '@/components/NotFoundContent';
 import { fontVariables } from '@/lib/fonts';
 import { DEFAULT_LOCALE, HTML_LOCALE } from '@/lib/site';
@@ -12,6 +13,7 @@ export default function NotFound() {
     <html lang={HTML_LOCALE[DEFAULT_LOCALE]} className={fontVariables}>
       <body>
         <NotFoundContent />
+        <Analytics />
       </body>
     </html>
   );
